@@ -1,0 +1,11 @@
+{
+    "domain": "jbl_integration",
+    "name": "JBL Integration",
+    "version": "1.0.0",
+    "documentation": "https://example.com",
+    "requirements": [],
+    "dependencies": [],
+    "codeowners": ["@your_github_username"],
+    "config_flow": true
+  }
+  
