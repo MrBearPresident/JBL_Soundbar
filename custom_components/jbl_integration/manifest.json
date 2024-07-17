@@ -2,10 +2,10 @@
     "domain": "jbl_integration",
     "name": "JBL Integration",
     "version": "1.0.0",
-    "documentation": "https://example.com",
+    "documentation": "https://github.com/MrBearPresident/JBL_Soundbar",
     "requirements": [],
     "dependencies": [],
-    "codeowners": ["@your_github_username"],
+    "codeowners": ["MrBearPresident"],
     "config_flow": true
   }
   
