@@ -29,7 +29,31 @@ class Coordinator(DataUpdateCoordinator):
             update_method=self._async_update_data,
             update_interval=timedelta(seconds=pollingRate),
         ) 
+
+    async def _SetupDeviceInfo(self):
+        device_info = await self.getDeviceInfo()
+            
+        # Ensure device_info has all the expected keys and provide fallback values if necessary
+        mac_address = device_info.get("wlan0_mac", "unknown_mac")
+        uuid = device_info.get("uuid", "unknown_uuid")
+        device_name = device_info.get("name", "JBL Bar 800")
+        serial_number = device_info.get("serial_number", "unknown_serial")
+        firmware_version = device_info.get("firmware", "unknown_firmware")
         
+        self._device_info = {
+            "identifiers": {(DOMAIN, self._entry.entry_id, mac_address, uuid, str(uuid).replace("-", "") , self.address)},
+            "name": device_name,
+            "manufacturer": "HARMAN International Industries",
+            "model": "JBL Bar 800",
+            "sw_version": firmware_version,
+            "serial_number": serial_number,
+        }
+        
+    @property
+    def device_info(self):
+        """Return device information about this entity."""
+        return self._device_info
+
     async def _UpdatePollingrate(self,pollingRate):
         self.update_interval = pollingRate
 
@@ -54,6 +78,76 @@ class Coordinator(DataUpdateCoordinator):
         
         self.data.update(combined_data)
         return combined_data
+
+
+
+    async def getDeviceInfo(self):
+        url = f'http://{self.address}/httpapi.asp?command=getDeviceInfo'
+        headers = {
+        'Accept-Encoding': "gzip",
+        }
+        async with aiohttp.ClientSession() as session:
+            try:
+                with async_timeout.timeout(10):
+                    async with session.get(url, headers=headers) as response:
+                        if response.status == 200:
+                            response_text = await response.text()
+                            response_json = json.loads(response_text)
+                            #_LOGGER.debug("Device Info Response text: %s", response_text)
+                            #get data out of JSON
+                            device_info = response_json["device_info"]
+                            return device_info
+                        else:
+                            _LOGGER.error("Failed to get device info: %s", response.status)
+                            return {}
+            except Exception as e:
+                _LOGGER.error("Error getting device info: %s", str(e))
+                return {}
+
+    async def getDeviceType(self):
+        """Fetch data from the API."""
+        url = f'http://{self.address}:59152/upnp/control/rendercontrol1'
+        headers = {
+            "Content-type": 'text/xml;charset="utf-8"',
+            "Soapaction": '"urn:schemas-upnp-org:service:AVTransport:1#GetInfoEx"'
+        }
+        payload = """
+        <?xml version="1.0" encoding="utf-8" standalone="yes"?>
+        <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
+          <s:Body>
+            <u:GetInfoEx xmlns:u="urn:schemas-upnp-org:service:RenderingControl:1">
+              <InstanceID>0</InstanceID>
+            </u:GetInfoEx>
+          </s:Body>
+        </s:Envelope>
+        """
+        async with aiohttp.ClientSession() as session:
+            try:
+                with async_timeout.timeout(10):
+                    async with session.post(url, headers=headers, data=payload) as response:
+                        if response.status == 200:
+                            response_text = await response.text()
+                            #_LOGGER.debug("Response text: %s", response_text)
+                            # Parse the XML response manually, as it's not JSON
+                            from xml.etree import ElementTree as ET
+                            root = ET.fromstring(response_text)
+                            namespaces = {
+                                's': 'http://schemas.xmlsoap.org/soap/envelope/',
+                                'u': 'urn:schemas-upnp-org:service:RenderingControl:1'
+                            }
+                            try:
+                                status = root.find('.//u:GetInfoExResponse/Status', namespaces).text
+                                deviceType = status.get("hm_product_name", "unknown_product")
+                                return deviceType
+                            except AttributeError:
+                                _LOGGER.error("Could not find necessary device type in the response")
+                                return {}
+                        else:
+                            _LOGGER.error("Failed to fetch data: %s", response.status)
+                            return {}
+            except Exception as e:
+                _LOGGER.error("Error fetching data: %s", str(e))
+                return {}
 
     async def requestInfo(self):
         """Fetch data from the API."""
@@ -89,9 +183,23 @@ class Coordinator(DataUpdateCoordinator):
                             try:
                                 play_medium = root.find('.//u:GetInfoExResponse/PlayMedium', namespaces).text
                                 volume_level = root.find('.//u:GetInfoExResponse/CurrentVolume', namespaces).text
+                                track = root.find('.//u:GetInfoExResponse/TrackURI', namespaces).text
+                                transport_state = root.find('.//u:GetInfoExResponse/CurrentTransportState', namespaces).text
+                                transport_status = root.find('.//u:GetInfoExResponse/CurrentTransportStatus', namespaces).text
+                                track_duration = root.find('.//u:GetInfoExResponse/TrackDuration', namespaces).text
+                                mute = root.find('.//u:GetInfoExResponse/CurrentMute', namespaces).text
+                                channel = root.find('.//u:GetInfoExResponse/CurrentChannel', namespaces).text
+                                slaves = root.find('.//u:GetInfoExResponse/SlaveFlag', namespaces).text
                                 gatheredData = {
                                     "play_medium": play_medium,
-                                    "volume_level": volume_level
+                                    "volume_level": volume_level,
+                                    "track": track,
+                                    "transport_state": transport_state,
+                                    "transport_status": transport_status,
+                                    "track_duration": track_duration,
+                                    "mute": mute,
+                                    "channel": channel,
+                                    "slaves": slaves,
                                 }
                                 return gatheredData
                             except AttributeError:

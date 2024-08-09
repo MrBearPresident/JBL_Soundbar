@@ -19,7 +19,7 @@ class JBL800ConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
                 {
 
                     vol.Required("ip_address", description={"suggested_value": "192.148.4.66"}): str,
-                    vol.Required("polling_rate", description={"suggested_value": "60"}): int,
+                    vol.Required("polling_rate", description={"suggested_value": "5"}): int,
                 }
             ),
             errors=errors,

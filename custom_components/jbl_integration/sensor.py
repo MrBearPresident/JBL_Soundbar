@@ -18,18 +18,18 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    instanceArray = []
-    instanceArray.append(["play_medium","Play Medium","mdi:soundbar"])
-    instanceArray.append(["volume_level","Volume","mdi:volume-high"])
-
     async_add_entities([
         JBLSensor(coordinator,entry,"play_medium","Play Medium","mdi:soundbar"),
         JBLSensor(coordinator,entry,"volume_level","Volume","mdi:volume-high"),
-        #JBLPlayMediumSensor(coordinator, entry),
-        #JBLVolumeLevelSensor(coordinator, entry),
+        JBLSensor(coordinator,entry,"transport_state","Transport State","mdi:state-machine"),
+        JBLSensor(coordinator,entry,"transport_status","Transport Status","mdi:information"),
+        JBLSensor(coordinator,entry,"mute","mute","mdi:volume-mute"),
+        JBLSensor(coordinator,entry,"track_duration","Track Duration","mdi:information"),
+        JBLSensor(coordinator,entry,"track","Track","mdi:information"),
+        JBLSensor(coordinator,entry,"channel","Channel","mdi:information"),
+        JBLSensor(coordinator,entry,"slaves","Slaves Present","mdi:information"),
         # Add other sensors here
     ])
-
 
     
 class JBLSensor(Entity):
@@ -49,6 +49,11 @@ class JBLSensor(Entity):
         return self.entityName
 
     @property
+    def entity_registry_enabled_default(self) -> bool:
+        """Return whether the entity should be enabled when first added to the entity registry."""
+        return False  # Disable the sensor by default
+
+    @property
     def state(self):
         """Return the state of the sensor."""
         return self.coordinator.data.get(self.infoString)
@@ -57,6 +62,10 @@ class JBLSensor(Entity):
     def icon(self):
         """Return the icon to use in the frontend."""
         return self.entityicon
+
+    @property
+    def enabled(self):
+        return false
 
     @property
     def unique_id(self):
@@ -71,12 +80,8 @@ class JBLSensor(Entity):
     @property
     def device_info(self):
         """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "JBL Bar 800",
-            "manufacturer": "HARMAN International Industries",
-            "model": "JBL Bar 800",
-        }
+        return self.coordinator.device_info
+
 
     async def async_added_to_hass(self):
         """When entity is added to hass."""

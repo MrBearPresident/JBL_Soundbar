@@ -46,12 +46,7 @@ class JBLVolumeNumber(NumberEntity):
     @property
     def device_info(self):
         """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "JBL Bar 800",
-            "manufacturer": "HARMAN International Industries",
-            "model": "JBL Bar 800",
-        }
+        return self.coordinator.device_info
 
     @property
     def native_min_value(self):
@@ -124,12 +119,9 @@ class JBLEqNumber(NumberEntity):
     @property
     def device_info(self):
         """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "JBL Bar 800",
-            "manufacturer": "HARMAN International Industries",
-            "model": "JBL Bar 800",
-        }
+        
+        return self.coordinator.device_info
+
 
     @property
     def native_min_value(self):

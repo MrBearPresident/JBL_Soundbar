@@ -48,12 +48,8 @@ class JBLPowerSwitch(SwitchEntity):
     @property
     def device_info(self):
         """Return device information about this entity."""
-        return {
-            "identifiers": {(DOMAIN, self._entry.entry_id)},
-            "name": "JBL Bar 800",
-            "manufacturer": "HARMAN International Industries",
-            "model": "JBL Bar 800",
-        }
+        return self.coordinator.device_info
+
 
     async def async_turn_on(self, **kwargs):
         """Turn the switch on."""
