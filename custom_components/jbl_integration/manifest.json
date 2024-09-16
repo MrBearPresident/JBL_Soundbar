@@ -1,13 +1,13 @@
 {
     "domain": "jbl_integration",
     "name": "JBL Integration", 
-    "version": "1.1.1",
-    "documentation": "https://github.com/MrBearPresident/JBL_Soundbar",
-    "issue_tracker": "https://github.com/MrBearPresident/JBL_Soundbar/issues",
-    "requirements": [],
-    "dependencies": [],
     "codeowners": ["@MrBearPresident"],
     "config_flow": true,
-    "iot_class": "local_polling"
+    "dependencies": [],
+    "documentation": "https://github.com/MrBearPresident/JBL_Soundbar",
+    "iot_class": "local_polling",
+    "issue_tracker": "https://github.com/MrBearPresident/JBL_Soundbar/issues",
+    "requirements": [],
+    "version": "1.1.1",
   }
   
