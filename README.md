@@ -1,42 +1,27 @@
 JBL_Integration
 ===========================================
 
-
-.. introduction-begin
-
 This repository is a soundbars JBL_integration for a `Home Assistant`, this as a custom component
 
 This integration is only usable if you're also able to use the 'JBL one' app (https://play.google.com/store/apps/details?id=com.jbl.oneapp). 
 
-.. introduction-end
 
 
 
 Usage
 =====
 
-.. usage-begin
 
 It is recommended to use the latest stable version by using the command:
 
-.. parsed-literal::
 
-   $ cookiecutter gh:oncleben31/homeassistant-custom-component \\
-     --checkout=\ |current-stable-version|\
-
-
-.. usage-end
 
 Features
 ========
-
-.. features-begin
-
 - Read state of the soundbar
 - Setting Volume
 - Simulate button presses
 - Setting EQ
-.. features-end
 
 ## Installation Instructions
 
