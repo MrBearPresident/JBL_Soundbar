@@ -6,7 +6,8 @@
     "issue_tracker": "https://github.com/MrBearPresident/JBL_Soundbar/issues",
     "requirements": [],
     "dependencies": [],
-    "codeowners": ["MrBearPresident"],
-    "config_flow": true
+    "codeowners": ["@MrBearPresident"],
+    "config_flow": true,
+    "iot_class": "Local Polling"
   }
   

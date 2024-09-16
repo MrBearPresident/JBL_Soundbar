@@ -5,6 +5,10 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .coordinator import Coordinator
+from homeassistant.helpers import config_validation as cv
+
+# Define the configuration schema for your integration
+CONFIG_SCHEMA = cv.config_entry_only_config_schema()
 
 async def async_setup(hass: HomeAssistant, config: dict):
     """Set up the JBL integration."""
