@@ -3,7 +3,7 @@
     "name": "JBL Integration", 
     "version": "1.1.1",
     "documentation": "https://github.com/MrBearPresident/JBL_Soundbar",
-    "issue_tracker": "https://github.com/MrBearPresident/JBL_Soundbar/issues" 
+    "issue_tracker": "https://github.com/MrBearPresident/JBL_Soundbar/issues",
     "requirements": [],
     "dependencies": [],
     "codeowners": ["MrBearPresident"],
