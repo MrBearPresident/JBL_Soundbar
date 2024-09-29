@@ -1,13 +1,18 @@
 """Sensor platform for JBL integration."""
 import aiohttp
 import async_timeout
+import requests
 import json
 import logging
+import urllib3
+import ssl
+import certifi
 from datetime import timedelta
 from homeassistant.helpers.entity import Entity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+
 
 from .const import DOMAIN
 
@@ -20,8 +25,13 @@ class Coordinator(DataUpdateCoordinator):
         """Initialize the coordinator."""
         self._entry = entry
         self.address = address
+        self.hass = hass
         self.pollingRate = pollingRate
         self.data = {}
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        self.sslcontext = ssl_context
         super().__init__(
             hass,
             _LOGGER,
@@ -31,20 +41,38 @@ class Coordinator(DataUpdateCoordinator):
         ) 
 
     async def _SetupDeviceInfo(self):
+        #Setting up cert        
+        cert_path = self.hass.config.path("custom_components/jbl_integration/Cert.pem")
+        key_path = self.hass.config.path("custom_components/jbl_integration/Key.pem")
+        self.sslcontext.load_cert_chain(certfile=cert_path, keyfile=key_path)
+        
         device_info = await self.getDeviceInfo()
+        device_Type = await self.getDeviceType() 
+
+
             
         # Ensure device_info has all the expected keys and provide fallback values if necessary
         mac_address = device_info.get("wlan0_mac", "unknown_mac")
         uuid = device_info.get("uuid", "unknown_uuid")
-        device_name = device_info.get("name", "JBL Bar 800")
+        device_name = device_info.get("name", "Unknow_name")
         serial_number = device_info.get("serial_number", "unknown_serial")
         firmware_version = device_info.get("firmware", "unknown_firmware")
+        ip_address = device_info.get("apcli0", "unknown_address")
+        model = device_Type.get("hm_product_name", "unknown_product")
+        hw_version = device_Type.get("hardware", "unknown_hardware")
+
         
         self._device_info = {
-            "identifiers": {(DOMAIN, self._entry.entry_id, mac_address, uuid, str(uuid).replace("-", "") , self.address)},
+            "identifiers": {
+                (DOMAIN, self._entry.entry_id),
+                (DOMAIN, mac_address,uuid),
+                (DOMAIN, str(uuid).replace("-", "")),
+                (DOMAIN, self.address),
+                },
             "name": device_name,
             "manufacturer": "HARMAN International Industries",
-            "model": "JBL Bar 800",
+            "model": model,
+            "hw_version": hw_version,
             "sw_version": firmware_version,
             "serial_number": serial_number,
         }
@@ -58,12 +86,15 @@ class Coordinator(DataUpdateCoordinator):
         self.update_interval = pollingRate
 
     async def _send_command(self, command):
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
         """Send a command to the device."""
-        url = f'http://{self.address}/httpapi.asp'
+        url = f'https://{self.address}/httpapi.asp'
         payload = f'command=sendAppController&payload={{"key_pressed": "{command}"}}'
         async with aiohttp.ClientSession() as session:
             with async_timeout.timeout(10):
-                async with session.post(url, data=payload) as response:
+                async with session.post(url, data=payload,  ssl=self.sslcontext) as response:
                     if response.status != 200:
                         _LOGGER.error("Failed to send command: %s", response.status)
 
@@ -79,17 +110,19 @@ class Coordinator(DataUpdateCoordinator):
         self.data.update(combined_data)
         return combined_data
 
-
-
     async def getDeviceInfo(self):
-        url = f'http://{self.address}/httpapi.asp?command=getDeviceInfo'
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        url = f'https://{self.address}/httpapi.asp?command=getDeviceInfo'
         headers = {
         'Accept-Encoding': "gzip",
         }
+        
         async with aiohttp.ClientSession() as session:
             try:
                 with async_timeout.timeout(10):
-                    async with session.get(url, headers=headers) as response:
+                    async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
                         if response.status == 200:
                             response_text = await response.text()
                             response_json = json.loads(response_text)
@@ -106,50 +139,58 @@ class Coordinator(DataUpdateCoordinator):
 
     async def getDeviceType(self):
         """Fetch data from the API."""
-        url = f'http://{self.address}:59152/upnp/control/rendercontrol1'
-        headers = {
-            "Content-type": 'text/xml;charset="utf-8"',
-            "Soapaction": '"urn:schemas-upnp-org:service:AVTransport:1#GetInfoEx"'
-        }
-        payload = """
-        <?xml version="1.0" encoding="utf-8" standalone="yes"?>
+        url = f"http://{self.address}:59152/upnp/control/rendercontrol1"
+        
+        payload = """<?xml version="1.0" encoding="utf-8" standalone="yes"?>
         <s:Envelope s:encodingStyle="http://schemas.xmlsoap.org/soap/encoding/" xmlns:s="http://schemas.xmlsoap.org/soap/envelope/">
-          <s:Body>
-            <u:GetInfoEx xmlns:u="urn:schemas-upnp-org:service:RenderingControl:1">
-              <InstanceID>0</InstanceID>
-            </u:GetInfoEx>
-          </s:Body>
-        </s:Envelope>
-        """
-        async with aiohttp.ClientSession() as session:
-            try:
-                with async_timeout.timeout(10):
-                    async with session.post(url, headers=headers, data=payload) as response:
-                        if response.status == 200:
-                            response_text = await response.text()
-                            #_LOGGER.debug("Response text: %s", response_text)
-                            # Parse the XML response manually, as it's not JSON
-                            from xml.etree import ElementTree as ET
-                            root = ET.fromstring(response_text)
-                            namespaces = {
-                                's': 'http://schemas.xmlsoap.org/soap/envelope/',
-                                'u': 'urn:schemas-upnp-org:service:RenderingControl:1'
-                            }
-                            try:
-                                status = root.find('.//u:GetInfoExResponse/Status', namespaces).text
-                                deviceType = status.get("hm_product_name", "unknown_product")
-                                return deviceType
-                            except AttributeError:
-                                _LOGGER.error("Could not find necessary device type in the response")
-                                return {}
+        <s:Body>
+        <u:GetControlDeviceInfo xmlns:u="urn:schemas-upnp-org:service:RenderingControl:1">
+        <InstanceID>0</InstanceID></u:GetControlDeviceInfo>
+        </s:Body></s:Envelope>"""
+        
+        headers = {
+        'Content-type': "text/xml;charset=\"utf-8\"",
+        'Soapaction': "\"urn:schemas-upnp-org:service:RenderingControl:1#GetControlDeviceInfo\""
+        }
+
+        try:        
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, data=payload, headers=headers) as response:
+                    if response.status == 200:
+                        response_text = await response.text()
+                        
+                        # Parse XML response
+                        namespace = {
+                            's': 'http://schemas.xmlsoap.org/soap/envelope/', 
+                            'u': 'urn:schemas-upnp-org:service:RenderingControl:1'
+                        }
+                        from xml.etree import ElementTree as ET
+                        root = ET.fromstring(response_text)
+                        
+                        # Find the Status element
+                        status_element = root.find('.//u:GetControlDeviceInfoResponse/Status', namespace)
+                        
+                        if status_element is not None:
+                            # Get the text content of the Status element (which is a JSON string)
+                            status_json_str = status_element.text
+                            
+                            # Parse the JSON string into a Python dictionary
+                            status_data = json.loads(status_json_str)
+                            
+                            # Output the status data
+                            return status_data
                         else:
                             _LOGGER.error("Failed to fetch data: %s", response.status)
                             return {}
-            except Exception as e:
-                _LOGGER.error("Error fetching data: %s", str(e))
-                return {}
+        except Exception as e:
+            _LOGGER.error("Error fetching data: %s", str(e))
+            return {}
+            
 
     async def requestInfo(self):
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
         """Fetch data from the API."""
         url = f'http://{self.address}:59152/upnp/control/rendertransport1'
         headers = {
@@ -234,14 +275,17 @@ class Coordinator(DataUpdateCoordinator):
                 return {}
 
     async def getEQ(self):
-        url = f'http://{self.address}/httpapi.asp?command=getEQ'
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        url = f'https://{self.address}/httpapi.asp?command=getEQ'
         headers = {
         'Accept-Encoding': "gzip",
         }
         async with aiohttp.ClientSession() as session:
             try:
                 with async_timeout.timeout(10):
-                    async with session.get(url, headers=headers) as response:
+                    async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
                         if response.status == 200:
                             response_text = await response.text()
                             response_json = json.loads(response_text)
@@ -262,8 +306,11 @@ class Coordinator(DataUpdateCoordinator):
                 return {}
 
     async def setEQ(self, value: float, frequency):
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
         """Fetch data from the API."""
-        url = f'http://{self._entry.data["ip_address"]}/httpapi.asp'
+        url = f'https://{self._entry.data["ip_address"]}/httpapi.asp'
         headers = {
         'Accept-Encoding': "gzip",
         }
@@ -276,14 +323,13 @@ class Coordinator(DataUpdateCoordinator):
         async with aiohttp.ClientSession() as session:
             try:
                 with async_timeout.timeout(10):
-                    async with session.post(url, headers=headers, data=payload) as response:
+                    async with session.post(url, headers=headers, data=payload,  ssl=self.sslcontext) as response:
                         if response.status != 200:
                             _LOGGER.error("Failed to set EQ: %s", response.status)
                             return {}
             except Exception as e:
                 _LOGGER.error("Error setting EQ: %s", str(e))
                 return {}
-
 
     def merge_two_dicts(self,x, y):
         z = x.copy()   # start with keys and values of x
