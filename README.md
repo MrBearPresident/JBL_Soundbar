@@ -47,7 +47,7 @@ Features
 
 1. Go to the Integrations page
 2. Search for "jbl_integration"
-3. Through the UI configure the ip address of the soundbar 
+3. Through the UI, configure the ip address of the soundbar 
 4. Wait a few seconds, and the integration should be ready.
 
 
@@ -55,7 +55,8 @@ Features
 #Working Models
 
 
-| Firmware Version   | 24.15.21.80.00      |24.33.31.80.00      |
-| ------------- | ------------- |------------- |
-| JBL Bar 800 | Works With V1.1.1d |Works With W1.1.2 |
-| JBL Bar 1000 |  Works With V1.1.1d | ???? |
+| Firmware Version | 24.15.21.80.00 | 24.27.31.80.00 | 24.33.31.80.00|
+| ------------- | ------------- |-------------|------------- |
+| JBL Bar 300 | ??? |Works With W1.1.2 | |
+| JBL Bar 800 | Works With V1.1.1d | |Works With W1.1.2 |
+| JBL Bar 1000 |  Works With V1.1.1d| | ???? |
