@@ -57,6 +57,6 @@ Features
 
 | Firmware Version | 24.15.21.80.00 | 24.27.31.80.00 | 24.33.31.80.00|
 | ------------- | ------------- |-------------|------------- |
-| JBL Bar 300 | ??? |Works With W1.1.2 | |
-| JBL Bar 800 | Works With V1.1.1d | |Works With W1.1.2 |
+| JBL Bar 300 | ??? |Works With W1.1.3 | |
+| JBL Bar 800 | Works With V1.1.1d | |Works With W1.1.3 |
 | JBL Bar 1000 |  Works With V1.1.1d| | ???? |
