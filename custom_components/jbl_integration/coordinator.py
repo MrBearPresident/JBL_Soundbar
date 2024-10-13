@@ -21,24 +21,26 @@ _LOGGER = logging.getLogger(__name__)
 class Coordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
-    def __init__(self, hass, entry, address, pollingRate):
+    def __init__(self, address, pollingRate, hass=None, entry=None):
         """Initialize the coordinator."""
-        self._entry = entry
         self.address = address
-        self.hass = hass
         self.pollingRate = pollingRate
         self.data = {}
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        self.sslcontext = ssl_context
-        super().__init__(
-            hass,
-            _LOGGER,
-            name="JBL Sensor",
-            update_method=self._async_update_data,
-            update_interval=timedelta(seconds=pollingRate),
-        ) 
+        if hass != None and entry != None:
+            self._entry = entry
+            self.hass = hass
+            ssl_context = ssl.create_default_context(cafile=certifi.where())
+            ssl_context.check_hostname = False
+            ssl_context.verify_mode = ssl.CERT_NONE
+            self.sslcontext = ssl_context
+            super().__init__(
+                hass,
+                _LOGGER,
+                name="JBL Sensor",
+                update_method=self._async_update_data,
+                update_interval=timedelta(seconds=pollingRate),
+            ) 
+
 
     async def _SetupDeviceInfo(self):
         #Setting up cert        
@@ -133,6 +135,7 @@ class Coordinator(DataUpdateCoordinator):
                         else:
                             _LOGGER.error("Failed to get device info: %s", response.status)
                             return {}
+
             except Exception as e:
                 _LOGGER.error("Error getting device info: %s", str(e))
                 return {}
@@ -184,6 +187,7 @@ class Coordinator(DataUpdateCoordinator):
                             return {}
         except Exception as e:
             _LOGGER.error("Error fetching data: %s", str(e))
+            raise ConfigEntryNotReady(f"Timeout while connecting to {self.address}")
             return {}
             
 
