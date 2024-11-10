@@ -30,6 +30,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         JBLButton(coordinator,entry,"source-hdmi-switch","HDMI","mdi:video-input-hdmi"),
         JBLButton(coordinator,entry,"bluetooth","Bluetooth","mdi:bluetooth"),
         JBLButton(coordinator,entry,"source-tv","TV","mdi:television-box"),
+        JBLButton(coordinator,entry,"surround","Smart Mode","mdi:surround-sound"),
     ])
 
 class JBLButton(ButtonEntity):
