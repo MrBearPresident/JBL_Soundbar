@@ -306,7 +306,7 @@ class Coordinator(DataUpdateCoordinator):
                             _LOGGER.error("Failed to get EQ: %s", response.status)
                             return {}
             except Exception as e:
-                _LOGGER.error("Error getting EQ: %s", str(e))
+                _LOGGER.warning("Error getting EQ: %s", str(e))
                 return {}
 
     async def setEQ(self, value: float, frequency):

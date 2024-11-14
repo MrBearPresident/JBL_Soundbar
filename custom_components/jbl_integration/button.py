@@ -43,6 +43,8 @@ class JBLButton(ButtonEntity):
         self.entityName = name
         self.entityicon = icon
         self.actionstring = actionstring
+        self.entity_id = f"button.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
+        
 
     @property
     def name(self):

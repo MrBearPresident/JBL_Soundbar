@@ -28,7 +28,8 @@ class JBLPowerSwitch(SwitchEntity):
         """Initialize the switch."""
         self._entry = entry
         self._is_on = False
-        self.coordinator = coordinator
+        self.coordinator = coordinator        
+        self.entity_id = f"switch.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_power"
 
     @property
     def name(self):

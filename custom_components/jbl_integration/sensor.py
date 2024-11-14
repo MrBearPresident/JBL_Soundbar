@@ -41,6 +41,7 @@ class JBLSensor(Entity):
         self._entry = entry
         self.entityName = name
         self.entityicon = icon
+        self.entity_id = f"button.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
         self.infoString = infoString
 
     @property
