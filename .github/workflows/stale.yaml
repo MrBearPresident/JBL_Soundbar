@@ -61,7 +61,7 @@ jobs:
             of the old issues, as many of them have already been resolved with
             the latest updates.
 
-            Please make sure to update to the latest Home Assistant version and
+            Please make sure to update to the latest version and
             check if that solves the issue. Let us know if that works for you by
             adding a comment 👍
 
@@ -92,13 +92,13 @@ jobs:
             of the old issues, as many of them have already been resolved with
             the latest updates.
 
-            Please make sure to update to the latest Home Assistant version and
+            Please make sure to update to the latest version and
             check if that solves the issue. Let us know if that works for you by
             adding a comment 👍
 
             This issue has now been marked as stale and will be closed if no
             further activity occurs. Thank you for your contributions.
-			
+
       # Remove "needs-more-information" after update
       # Used for:
       # - Issues that are pending more information (incomplete issues)
