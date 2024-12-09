@@ -1,0 +1,16 @@
+name: Stale-Bot
+
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  validate-hacs:
+    runs-on: "ubuntu-latest"
+    steps:
+      - name: Close Stale Issues
+        uses: actions/stale@v9.0.0
+        days-before-close: 14
