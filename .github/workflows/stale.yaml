@@ -1,14 +1,15 @@
-name: Stale
+name: Stale-bot
 
 # yamllint disable-line rule:truthy
 on:
+  push:
+  pull_request:
   schedule:
-    - cron: "0 * * * *"
+    - cron: "0 0 * * *"
   workflow_dispatch:
 
 jobs:
   stale:
-    if: github.repository_owner == 'home-assistant'
     runs-on: ubuntu-latest
     steps:
       # The 60 day stale policy for PRs
@@ -83,7 +84,7 @@ jobs:
           operations-per-run: 250
           remove-stale-when-updated: true
           stale-issue-label: "stale"
-		  labels-to-remove-when-unstale: "needs-more-information"
+          labels-to-remove-when-unstale: "needs-more-information"
           exempt-issue-labels: "no-stale,help-wanted"
           stale-issue-message: >
             There hasn't been any activity on this issue recently. Due to the
@@ -114,5 +115,5 @@ jobs:
           operations-per-run: 250
           remove-stale-when-updated: true
           stale-issue-label: "needs-more-information"
-		  labels-to-remove-when-unstale: "needs-more-information"
+          labels-to-remove-when-unstale: "needs-more-information"
           exempt-issue-labels: "no-stale,help-wanted"
