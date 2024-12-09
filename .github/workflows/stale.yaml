@@ -114,6 +114,9 @@ jobs:
           days-before-pr-close: -1
           operations-per-run: 250
           remove-stale-when-updated: true
-          stale-issue-label: "needs-more-information"
+          stale-issue-label: "bot-monitored"
           labels-to-remove-when-unstale: "needs-more-information"
           exempt-issue-labels: "no-stale,help-wanted"
+          stale-issue-message: >
+            There has been a request for more information. 
+            The stale bot will monitor the situation and remove the label when answered.
