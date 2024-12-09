@@ -13,4 +13,5 @@ jobs:
     steps:
       - name: Close Stale Issues
         uses: actions/stale@v9.0.0
-        days-before-close: 14
+        with:
+          days-before-close: 14
