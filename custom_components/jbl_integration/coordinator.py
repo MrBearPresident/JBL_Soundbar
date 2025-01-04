@@ -63,7 +63,6 @@ class Coordinator(DataUpdateCoordinator):
         model = device_Type.get("hm_product_name", "unknown_product")
         hw_version = device_Type.get("hardware", "unknown_hardware")
 
-        
         self._device_info = {
             "identifiers": {
                 (DOMAIN, self._entry.entry_id),
@@ -78,11 +77,22 @@ class Coordinator(DataUpdateCoordinator):
             "sw_version": firmware_version,
             "serial_number": serial_number,
         }
+        try:
+            self._newFirmware = int(firmware_version.split('.')[2])>31
+            _LOGGER.debug("JBL one 3.0 Detected" if self._newFirmware else "Older firmware then JBL one 3.0")
+        except Exception as e:
+            self._newFirmware = False
+            
         
     @property
     def device_info(self):
         """Return device information about this entity."""
         return self._device_info
+    
+    @property
+    def newFirmware(self):
+        """Return if the JBL is part of the JBL one 3.0 software"""
+        return self._newFirmware
 
     async def _UpdatePollingrate(self,pollingRate):
         self.update_interval = pollingRate
@@ -282,7 +292,10 @@ class Coordinator(DataUpdateCoordinator):
         # Disable SSL warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
-        url = f'https://{self.address}/httpapi.asp?command=getEQ'
+        if self.newFirmware: 
+            url = f'https://{self.address}/httpapi.asp?command=getEQList' 
+        else:
+            url = f'https://{self.address}/httpapi.asp?command=getEQ' 
         headers = {
         'Accept-Encoding': "gzip",
         }
@@ -295,13 +308,26 @@ class Coordinator(DataUpdateCoordinator):
                             response_json = json.loads(response_text)
                             _LOGGER.debug("EQ Response text: %s", response_text)
                             #get data out of JSON
-                            gain = response_json["eq_setting"]["eq_payload"]["gain"]
-                            gatheredData = {
-                                "EQ_1_Low": gain[0],
-                                "EQ_2_Mid": gain[1],
-                                "EQ_3_High": gain[2]
-                            }
-                            return gatheredData
+                            if self.newFirmware:
+                                gain = response_json["eq_list"][4]["eq_payload"]["gain"]
+                                eqList = {
+                                        "125Hz":gain[0],    #Min -9, Max 6, step 0.5
+                                        "250Hz":gain[1],    #Min -6, Max 6, step 0.5
+                                        "500Hz":gain[2],    #Min -6, Max 6, step 0.5
+                                        "1000Hz":gain[3],   #Min -6, Max 6, step 0.5
+                                        "2000Hz":gain[4],   #Min -6, Max 6, step 0.5
+                                        "4000Hz":gain[5],   #Min -6, Max 6, step 0.5
+                                        "8000Hz":gain[6],   #Min -6, Max 6, step 0.5
+                                    }
+                                return eqList
+                            else:
+                                gain = response_json["eq_setting"]["eq_payload"]["gain"]
+                                gatheredData = {
+                                    "EQ_1_Low": gain[0],
+                                    "EQ_2_Mid": gain[1],
+                                    "EQ_3_High": gain[2]
+                                }
+                                return gatheredData
                         else:
                             _LOGGER.error("Failed to get EQ: %s", response.status)
                             return {}
@@ -318,11 +344,27 @@ class Coordinator(DataUpdateCoordinator):
         headers = {
         'Accept-Encoding': "gzip",
         }
-        payload = "command=setEQ&payload={\"eq_id\":\"1\",\"eq_name\":\"Custom\",\"eq_payload\":{\"fs\":[150.0,1000.0,6000.0],\"gain\":[BassFrequency,MidFrequency,HighFrequency],\"q\":[0.7070000171661377,0.5,0.7070000171661377],\"type\":[17.0,11.0,16.0]},\"eq_status\":\"on\"}"
-        BassFrequency = str(self.data.get("EQ_1_Low")) if "EQ_1_Low"!= frequency else str(round(value,1))
-        MidFrequency = str(self.data.get("EQ_2_Mid")) if "EQ_2_Mid"!= frequency else str(round(value,1))
-        HighFrequency = str(self.data.get("EQ_3_High")) if "EQ_3_High"!= frequency else str(round(value,1))
-        payload = payload.replace("BassFrequency",BassFrequency).replace("MidFrequency",MidFrequency).replace("HighFrequency",HighFrequency)
+        if self.newFirmware:
+            eqList = {
+                        "125Hz":self.data.get("125Hz",0),  #Min -9, Max 6, step 0.5
+                        "250Hz":self.data.get("250Hz",0),  #Min -6, Max 6, step 0.5
+                        "500Hz":self.data.get("500Hz",0),  #Min -6, Max 6, step 0.5
+                        "1000Hz":self.data.get("1000Hz",0), #Min -6, Max 6, step 0.5
+                        "2000Hz":self.data.get("2000Hz",0), #Min -6, Max 6, step 0.5
+                        "4000Hz":self.data.get("4000Hz",0), #Min -6, Max 6, step 0.5
+                        "8000Hz":self.data.get("8000Hz",0), #Min -6, Max 6, step 0.5
+                    }
+            eqList[frequency] = value
+            payload = "command=setActiveEQ&payload={\"active_eq_id\":\"0\",\"band\":7,\"eq_payload\":{\"fs\":[125.0,250.0,500.0,1000.0,2000.0,4000.0,8000.0],\"gain\":[125Hz,250Hz,500Hz,1000Hz,2000Hz,4000Hz,8000Hz]}}"
+
+            for key in eqList.keys():
+                payload = payload.replace(key,str(eqList.get(key))) 
+        else:
+            payload = "command=setEQ&payload={\"eq_id\":\"1\",\"eq_name\":\"Custom\",\"eq_payload\":{\"fs\":[150.0,1000.0,6000.0],\"gain\":[BassFrequency,MidFrequency,HighFrequency],\"q\":[0.7070000171661377,0.5,0.7070000171661377],\"type\":[17.0,11.0,16.0]},\"eq_status\":\"on\"}"
+            BassFrequency = str(self.data.get("EQ_1_Low")) if "EQ_1_Low"!= frequency else str(round(value,1))
+            MidFrequency = str(self.data.get("EQ_2_Mid")) if "EQ_2_Mid"!= frequency else str(round(value,1))
+            HighFrequency = str(self.data.get("EQ_3_High")) if "EQ_3_High"!= frequency else str(round(value,1))
+            payload = payload.replace("BassFrequency",BassFrequency).replace("MidFrequency",MidFrequency).replace("HighFrequency",HighFrequency)
         
         async with aiohttp.ClientSession() as session:
             try:
