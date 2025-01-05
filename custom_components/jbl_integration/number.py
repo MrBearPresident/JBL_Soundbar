@@ -121,7 +121,7 @@ class JBLEqNumber(NumberEntity):
 
     @property
     def icon(self):
-        return " mdi:equalizer"
+        return "mdi:equalizer"
 
     @property
     def unique_id(self):

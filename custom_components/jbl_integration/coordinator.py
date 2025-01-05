@@ -112,11 +112,13 @@ class Coordinator(DataUpdateCoordinator):
         data1 = await self.requestInfo()
         data2 = await self.getEQ()
         data3 = await self.getNightMode()
+        data4 = await self.getRearSpeaker()
         
         data12 = self.merge_two_dicts(data1, data2)
         data123 = self.merge_two_dicts(data12, data3)
+        data1234 = self.merge_two_dicts(data123, data4)
         
-        combined_data = data123
+        combined_data = data1234
         # Ensure self.data is initialized to an empty dictionary if it is None
         if self.data is None:
             self.data = {}
@@ -434,6 +436,34 @@ class Coordinator(DataUpdateCoordinator):
             except Exception as e:
                 _LOGGER.error("Error setting Nightmode: %s", str(e))
                 return {}
+
+    async def getRearSpeaker(self):
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        url = f'https://{self.address}/httpapi.asp?command=getRearSpeakerStatus'
+        
+        headers = {
+        'Accept-Encoding': "gzip",
+        }
+        async with aiohttp.ClientSession() as session:
+            try:
+                with async_timeout.timeout(10):
+                    async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
+                        if response.status == 200:
+                            response_text = await response.text()
+                            response_json = json.loads(response_text)
+                            _LOGGER.debug("Rear Speakers Response text: %s", response_text)
+                            try:
+                                return {"Rears":response_json["rears"]}
+                            except Exception as e:
+                                _LOGGER.debug("No Rear Speakers available")
+                                return {}
+                        else:
+                            return {}
+            except Exception as e:
+                _LOGGER.error("Error getting Rear Speakers: %s", str(e))
+                return {}   
                 
     def merge_two_dicts(self,x, y):
         z = x.copy()   # start with keys and values of x
