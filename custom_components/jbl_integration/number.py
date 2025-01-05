@@ -138,7 +138,7 @@ class JBLEqNumber(NumberEntity):
     @property
     def native_min_value(self):
         """Return the minimum value."""
-        minValue = -6 if ("EQ_1_Low" != self.entityName or " 125Hz" != self.entityName) else -9
+        minValue = -6 if ("EQ_1_Low" != self.entityName and " 125Hz" != self.entityName) else -9
         return minValue
 
     @property
