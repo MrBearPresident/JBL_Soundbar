@@ -113,12 +113,14 @@ class Coordinator(DataUpdateCoordinator):
         data2 = await self.getEQ()
         data3 = await self.getNightMode()
         data4 = await self.getRearSpeaker()
+        data5 = await self.getSmartMode()
         
         data12 = self.merge_two_dicts(data1, data2)
         data123 = self.merge_two_dicts(data12, data3)
         data1234 = self.merge_two_dicts(data123, data4)
+        data12345 = self.merge_two_dicts(data1234, data5)
         
-        combined_data = data1234
+        combined_data = data12345
         # Ensure self.data is initialized to an empty dictionary if it is None
         if self.data is None:
             self.data = {}
@@ -464,6 +466,35 @@ class Coordinator(DataUpdateCoordinator):
             except Exception as e:
                 _LOGGER.error("Error getting Rear Speakers: %s", str(e))
                 return {}   
+    
+    async def getSmartMode(self):
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        url = 'https://192.148.4.66/httpapi.asp?command=getSmartMode'
+        
+        headers = {
+        'Accept-Encoding': "gzip",
+        }
+        async with aiohttp.ClientSession() as session:
+            try:
+                with async_timeout.timeout(10):
+                    async with session.get(url, headers=headers, ssl=self.sslcontext) as response:
+                        if response.status == 200:
+                            response_text = await response.text()
+                            response_json = json.loads(response_text)
+                            try:
+                                _LOGGER.debug("SmartMode Response text: %s", response_text)
+                                return {"SmartMode": response_json["status"]}
+                            except Exception as e:
+                                _LOGGER.debug("No SmartMode available")
+                                return {}
+                        else:
+                            _LOGGER.error("SmartMode Response status: %s", response.status)
+                            return {}
+            except Exception as e:
+                _LOGGER.error("Error getting SmartMode: %s", str(e))
+                return {}
                 
     def merge_two_dicts(self,x, y):
         z = x.copy()   # start with keys and values of x
