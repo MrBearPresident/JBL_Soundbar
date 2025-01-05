@@ -15,11 +15,12 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     """Set up the JBL switch platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    async_add_entities([
-        JBLPowerSwitch(entry, coordinator),
-        NightModeSwitch(entry, coordinator),
-        #add more switches
-    ])
+    entityArray = []
+    entityArray.append(JBLPowerSwitch(entry, coordinator))
+    if "NightMode" in coordinator.data:
+        entityArray.append(NightModeSwitch(entry, coordinator))
+        
+    async_add_entities(entityArray)
 
 
 class JBLPowerSwitch(SwitchEntity):
