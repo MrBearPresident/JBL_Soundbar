@@ -41,7 +41,6 @@ class Coordinator(DataUpdateCoordinator):
                 update_interval=timedelta(seconds=pollingRate),
             ) 
 
-
     async def _SetupDeviceInfo(self):
         #Setting up cert        
         cert_path = self.hass.config.path("custom_components/jbl_integration/Cert.pem")
@@ -83,7 +82,6 @@ class Coordinator(DataUpdateCoordinator):
         except Exception as e:
             self._newFirmware = False
             
-        
     @property
     def device_info(self):
         """Return device information about this entity."""
@@ -113,8 +111,12 @@ class Coordinator(DataUpdateCoordinator):
     async def _async_update_data(self):
         data1 = await self.requestInfo()
         data2 = await self.getEQ()
-        combined_data = self.merge_two_dicts(data1, data2)
+        data3 = await self.getNightMode()
         
+        data12 = self.merge_two_dicts(data1, data2)
+        data123 = self.merge_two_dicts(data12, data3)
+        
+        combined_data = data123
         # Ensure self.data is initialized to an empty dictionary if it is None
         if self.data is None:
             self.data = {}
@@ -200,7 +202,6 @@ class Coordinator(DataUpdateCoordinator):
             raise ConfigEntryNotReady(f"Timeout while connecting to {self.address}")
             return {}
             
-
     async def requestInfo(self):
         # Disable SSL warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
@@ -373,10 +374,67 @@ class Coordinator(DataUpdateCoordinator):
                         if response.status != 200:
                             _LOGGER.error("Failed to set EQ: %s", response.status)
                             return {}
+                        else:
+                            return {}
             except Exception as e:
                 _LOGGER.error("Error setting EQ: %s", str(e))
                 return {}
 
+    async def getNightMode(self):
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        url = f'https://{self.address}/httpapi.asp?command=getPersonalListeningMode'
+        
+        headers = {
+        'Accept-Encoding': "gzip",
+        }
+        async with aiohttp.ClientSession() as session:
+            try:
+                with async_timeout.timeout(10):
+                    async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
+                        if response.status == 200:
+                            response_text = await response.text()
+                            response_json = json.loads(response_text)
+                            try:
+                                _LOGGER.debug("Nightmode Response text: %s", response_text)
+                                return {"NightMode":response_json["status"]}
+                            except Exception as e:
+                                _LOGGER.debug("No Nightmode available")
+                                return {}
+                        else:
+                            _LOGGER.error("Nightmode Response status: %s", response.status)
+                            return {}
+            except Exception as e:
+                _LOGGER.error("Error getting NightMode: %s", str(e))
+                return {}
+            
+    async def setNightMode(self, value: bool):
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        """Fetch data from the API."""
+        url = f'https://{self.address}/httpapi.asp'
+        headers = {
+        'Accept-Encoding': "gzip",
+        }
+        
+        strvalue = 'on' if value else 'off'
+        payload = 'command=setPersonalListeningMode&payload={"status":"'+strvalue+'"}'
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with async_timeout.timeout(10):
+                    async with session.post(url, headers=headers, data=payload,  ssl=self.sslcontext) as response:
+                        if response.status != 200:
+                            _LOGGER.error("Failed to set Nightmode: %s", response.status)
+                            return {}
+                        else:
+                            return {}
+            except Exception as e:
+                _LOGGER.error("Error setting Nightmode: %s", str(e))
+                return {}
+                
     def merge_two_dicts(self,x, y):
         z = x.copy()   # start with keys and values of x
         z.update(y)    # modifies z with keys and values of y

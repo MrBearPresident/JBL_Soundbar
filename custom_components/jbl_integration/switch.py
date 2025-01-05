@@ -17,6 +17,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     async_add_entities([
         JBLPowerSwitch(entry, coordinator),
+        NightModeSwitch(entry, coordinator),
         #add more switches
     ])
 
@@ -75,6 +76,57 @@ class JBLPowerSwitch(SwitchEntity):
         await self.coordinator.async_request_refresh()
         #self._is_on =  self.coordinator.data.get("play_medium") != "UNKNOWN"
         #self.async_write_ha_state()
+
+    @property
+    def should_poll(self):
+        """No polling needed."""
+        return False
+
+    async def async_added_to_hass(self):
+        """When entity is added to hass."""
+        self.async_on_remove(self.coordinator.async_add_listener(self.async_write_ha_state))
+
+    async def async_update(self):
+        """Update the sensor."""
+        await self.coordinator.async_request_refresh()
+
+class NightModeSwitch(SwitchEntity):
+    """Representation of a switch to control JBL NightMode."""
+
+    def __init__(self, entry: ConfigEntry, coordinator: Coordinator):
+        """Initialize the switch."""
+        self._entry = entry
+        self._is_on = False
+        self.coordinator = coordinator        
+        self.entity_id = f"switch.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_NightMode"
+
+    @property
+    def name(self):
+        """Return the name of the switch."""
+        return "JBL Night Mode"
+
+    @property
+    def unique_id(self):
+        """Return a unique ID for the switch."""
+        return f"jbl_night_mode_{self._entry.entry_id}"
+
+    @property
+    def is_on(self):
+        """Return true if switch is on."""
+        return self.coordinator.data.get("NightMode") == "on"
+
+    @property
+    def device_info(self):
+        """Return device information about this entity."""
+        return self.coordinator.device_info
+
+    async def async_turn_on(self, **kwargs):
+        """Turn the switch on."""
+        await self.coordinator.setNightMode(True)
+        
+    async def async_turn_off(self, **kwargs):
+        """Turn the switch off."""
+        await self.coordinator.setNightMode(False)
 
     @property
     def should_poll(self):
