@@ -111,7 +111,7 @@ class JBLRearSensor(Entity):
         self.number = arrayNumber
         self._entry = entry
         self.entityName = "Battery"
-        self.entity_id = f"sensor.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = f"sensor.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_{self.coordinator.data["Rears"][self.number]["channel"].lower()}_{self.entityName.replace(' ', '_').lower()}"
 
     @property
     def name(self):
@@ -134,7 +134,12 @@ class JBLRearSensor(Entity):
     @property
     def state(self):
         """Return the state of the sensor."""
-        return self.coordinator.data["Rears"][self.number]["capicity"]
+        if "Rears" in self.coordinator.data:
+            return self.coordinator.data["Rears"][self.number]["capicity"]
+        else:
+            _LOGGER.debug("Rear speaker unavailable for %s", self.entity_id )
+            return None
+            
 
     @property
     def enabled(self):

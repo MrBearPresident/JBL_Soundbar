@@ -1,6 +1,6 @@
 """Sensor platform for JBL integration."""
+import asyncio
 import aiohttp
-import async_timeout
 import requests
 import json
 import logging
@@ -12,7 +12,6 @@ from homeassistant.helpers.entity import Entity
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-
 
 from .const import DOMAIN
 
@@ -50,8 +49,6 @@ class Coordinator(DataUpdateCoordinator):
         device_info = await self.getDeviceInfo()
         device_Type = await self.getDeviceType() 
 
-
-            
         # Ensure device_info has all the expected keys and provide fallback values if necessary
         mac_address = device_info.get("wlan0_mac", "unknown_mac")
         uuid = device_info.get("uuid", "unknown_uuid")
@@ -103,7 +100,7 @@ class Coordinator(DataUpdateCoordinator):
         url = f'https://{self.address}/httpapi.asp'
         payload = f'command=sendAppController&payload={{"key_pressed": "{command}"}}'
         async with aiohttp.ClientSession() as session:
-            with async_timeout.timeout(10):
+            async with asyncio.timeout(10):
                 async with session.post(url, data=payload,  ssl=self.sslcontext) as response:
                     if response.status != 200:
                         _LOGGER.error("Failed to send command: %s", response.status)
@@ -139,7 +136,7 @@ class Coordinator(DataUpdateCoordinator):
         
         async with aiohttp.ClientSession() as session:
             try:
-                with async_timeout.timeout(10):
+                async with asyncio.timeout(10):
                     async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
                         if response.status == 200:
                             response_text = await response.text()
@@ -228,7 +225,7 @@ class Coordinator(DataUpdateCoordinator):
         """
         async with aiohttp.ClientSession() as session:
             try:
-                with async_timeout.timeout(10):
+                async with asyncio.timeout(10):
                     async with session.post(url, headers=headers, data=payload) as response:
                         if response.status == 200:
                             response_text = await response.text()
@@ -284,7 +281,7 @@ class Coordinator(DataUpdateCoordinator):
         
         async with aiohttp.ClientSession() as session:
             try:
-                with async_timeout.timeout(10):
+                async with asyncio.timeout(10):
                     async with session.post(url, headers=headers, data=payload) as response:
                         if response.status != 200:
                             _LOGGER.error("Failed to set volume: %s", response.status)
@@ -306,7 +303,7 @@ class Coordinator(DataUpdateCoordinator):
         }
         async with aiohttp.ClientSession() as session:
             try:
-                with async_timeout.timeout(10):
+                async with asyncio.timeout(10):
                     async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
                         if response.status == 200:
                             response_text = await response.text()
@@ -373,7 +370,7 @@ class Coordinator(DataUpdateCoordinator):
         
         async with aiohttp.ClientSession() as session:
             try:
-                with async_timeout.timeout(10):
+                async with asyncio.timeout(10):
                     async with session.post(url, headers=headers, data=payload,  ssl=self.sslcontext) as response:
                         if response.status != 200:
                             _LOGGER.error("Failed to set EQ: %s", response.status)
@@ -395,7 +392,7 @@ class Coordinator(DataUpdateCoordinator):
         }
         async with aiohttp.ClientSession() as session:
             try:
-                with async_timeout.timeout(10):
+                async with asyncio.timeout(10):
                     async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
                         if response.status == 200:
                             response_text = await response.text()
@@ -428,7 +425,7 @@ class Coordinator(DataUpdateCoordinator):
 
         async with aiohttp.ClientSession() as session:
             try:
-                async with async_timeout.timeout(10):
+                async with asyncio.timeout(10):
                     async with session.post(url, headers=headers, data=payload,  ssl=self.sslcontext) as response:
                         if response.status != 200:
                             _LOGGER.error("Failed to set Nightmode: %s", response.status)
@@ -450,16 +447,18 @@ class Coordinator(DataUpdateCoordinator):
         }
         async with aiohttp.ClientSession() as session:
             try:
-                with async_timeout.timeout(10):
+                async with asyncio.timeout(10):
                     async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
                         if response.status == 200:
                             response_text = await response.text()
-                            response_json = json.loads(response_text)
                             _LOGGER.debug("Rear Speakers Response text: %s", response_text)
                             try:
+                                response_json = json.loads(response_text)
                                 return {"Rears":response_json["rears"]}
                             except Exception as e:
                                 _LOGGER.debug("No Rear Speakers available")
+                                if "Rears"in self.data:
+                                    self.data.pop('Rears', None)
                                 return {}
                         else:
                             return {}
@@ -478,13 +477,13 @@ class Coordinator(DataUpdateCoordinator):
         }
         async with aiohttp.ClientSession() as session:
             try:
-                with async_timeout.timeout(10):
+                async with asyncio.timeout(10):
                     async with session.get(url, headers=headers, ssl=self.sslcontext) as response:
                         if response.status == 200:
                             response_text = await response.text()
-                            response_json = json.loads(response_text)
+                            _LOGGER.debug("SmartMode Response text: %s", response_text)
                             try:
-                                _LOGGER.debug("SmartMode Response text: %s", response_text)
+                                response_json = json.loads(response_text)
                                 return {"SmartMode": response_json["status"]}
                             except Exception as e:
                                 _LOGGER.debug("No SmartMode available")

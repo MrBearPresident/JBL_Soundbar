@@ -17,7 +17,8 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
 
     entityArray = []
     entityArray.append(JBLPowerSwitch(entry, coordinator))
-    entityArray.append(SmartModeSwitch(entry, coordinator))
+    if "SmartMode" in coordinator.data:
+        entityArray.append(SmartModeSwitch(entry, coordinator))
     if "NightMode" in coordinator.data:
         entityArray.append(NightModeSwitch(entry, coordinator))
         
@@ -49,6 +50,11 @@ class JBLPowerSwitch(SwitchEntity):
         """Return true if switch is on."""
         return self.coordinator.data.get("play_medium") != "UNKNOWN"
 
+    @property
+    def icon(self):
+        """Return the icon to use in the frontend."""
+        return "mdi:power"
+    
     @property
     def device_info(self):
         """Return device information about this entity."""
@@ -118,6 +124,11 @@ class NightModeSwitch(SwitchEntity):
         return self.coordinator.data.get("NightMode") == "on"
 
     @property
+    def icon(self):
+        """Return the icon to use in the frontend."""
+        return"mdi:waveform"
+    
+    @property
     def device_info(self):
         """Return device information about this entity."""
         return self.coordinator.device_info
@@ -167,7 +178,12 @@ class SmartModeSwitch(SwitchEntity):
     def is_on(self):
         """Return true if switch is on."""
         return self.coordinator.data.get("SmartMode") == "on"
-
+    
+    @property
+    def icon(self):
+        """Return the icon to use in the frontend."""
+        return "mdi:surround-sound"
+    
     @property
     def device_info(self):
         """Return device information about this entity."""

@@ -31,7 +31,7 @@ class JBLChargingSensor(BinarySensorEntity):
         self.number = arrayNumber
         self._entry = entry
         self.entityName = "Charging"
-        self.entity_id = f"binary_sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = f"binary_sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.coordinator.data["Rears"][self.number]["channel"].lower()}_{self.entityName.replace(' ', '_').lower()}"
 
     @property
     def name(self):
@@ -82,7 +82,7 @@ class JBLDockedSensor(BinarySensorEntity):
         self.number = arrayNumber
         self._entry = entry
         self.entityName = "Docked"
-        self.entity_id = f"binary_sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = f"binary_sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.coordinator.data["Rears"][self.number]["channel"].lower()}_{self.entityName.replace(' ', '_').lower()}"
 
     @property
     def name(self):
@@ -133,7 +133,7 @@ class JBLOnlineSensor(BinarySensorEntity):
         self.number = arrayNumber
         self._entry = entry
         self.entityName = "Online"
-        self.entity_id = f"binary_sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = f"binary_sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.coordinator.data["Rears"][self.number]["channel"].lower()}_{self.entityName.replace(' ', '_').lower()}"
 
     @property
     def name(self):
