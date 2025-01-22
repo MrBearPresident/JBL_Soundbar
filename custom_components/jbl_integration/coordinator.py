@@ -103,20 +103,15 @@ class Coordinator(DataUpdateCoordinator):
                         _LOGGER.error("Failed to send command: %s", response.status)
 
     async def _async_update_data(self):
-        data1 = await self.requestInfo()
-        data2 = await self.getEQ()
-        data3 = await self.getNightMode()
-        data4 = await self.getRearSpeaker()
-        data5 = await self.getSmartMode()
-        data6 = await self.getPureVoice()
-        
-        data12 = self.merge_two_dicts(data1, data2)
-        data123 = self.merge_two_dicts(data12, data3)
-        data1234 = self.merge_two_dicts(data123, data4)
-        data12345 = self.merge_two_dicts(data1234, data5)
-        data123456 = self.merge_two_dicts(data12345, data6)
-        
-        combined_data = data123456
+        combined_data = {
+            **await self.requestInfo(),
+            **await self.getEQ(),
+            **await self.getNightMode(),
+            **await self.getRearSpeaker(),
+            **await self.getSmartMode(),
+            **await self.getPureVoice(),
+        }
+
         # Ensure self.data is initialized to an empty dictionary if it is None
         if self.data is None:
             self.data = {}
