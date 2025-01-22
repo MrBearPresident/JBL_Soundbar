@@ -470,7 +470,7 @@ class Coordinator(DataUpdateCoordinator):
         # Disable SSL warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
-        url = 'https://192.148.4.66/httpapi.asp?command=getSmartMode'
+        url = f'https://{self.address}/httpapi.asp?command=getSmartMode'
         
         headers = {
         'Accept-Encoding': "gzip",
