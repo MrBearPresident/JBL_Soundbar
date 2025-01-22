@@ -1,18 +1,13 @@
 """Sensor platform for JBL integration."""
 import asyncio
 import aiohttp
-import requests
 import json
 import logging
 import urllib3
 import ssl
 import certifi
 from datetime import timedelta
-from homeassistant.helpers.entity import Entity
-from homeassistant.config_entries import ConfigEntry
-from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
-
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -25,13 +20,15 @@ class Coordinator(DataUpdateCoordinator):
         self.address = address
         self.pollingRate = pollingRate
         self.data = {}
+
+        ssl_context = ssl.create_default_context(cafile=certifi.where())
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+        self.sslcontext = ssl_context
+    
         if hass != None and entry != None:
             self._entry = entry
             self.hass = hass
-            ssl_context = ssl.create_default_context(cafile=certifi.where())
-            ssl_context.check_hostname = False
-            ssl_context.verify_mode = ssl.CERT_NONE
-            self.sslcontext = ssl_context
             super().__init__(
                 hass,
                 _LOGGER,
@@ -111,19 +108,46 @@ class Coordinator(DataUpdateCoordinator):
         data3 = await self.getNightMode()
         data4 = await self.getRearSpeaker()
         data5 = await self.getSmartMode()
+        data6 = await self.getPureVoice()
         
         data12 = self.merge_two_dicts(data1, data2)
         data123 = self.merge_two_dicts(data12, data3)
         data1234 = self.merge_two_dicts(data123, data4)
         data12345 = self.merge_two_dicts(data1234, data5)
+        data123456 = self.merge_two_dicts(data12345, data6)
         
-        combined_data = data12345
+        combined_data = data123456
         # Ensure self.data is initialized to an empty dictionary if it is None
         if self.data is None:
             self.data = {}
         
         self.data.update(combined_data)
         return combined_data
+
+    async def _getCommand(self, command):
+        # Disable SSL warnings
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        
+        url = f'https://{self.address}/httpapi.asp?command={command}'
+        
+        headers = {
+            'Accept-Encoding': "gzip",
+        }
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with asyncio.timeout(10):
+                    async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
+                        if response.status == 200:
+                            response_text = await response.text()
+                            response_json = json.loads(response_text)
+                            _LOGGER.debug(f"%s Response text: %s", command, response_text)
+                            return response_json
+                        else:
+                            _LOGGER.error(f"Failed to get %s: %s", command, response.status)
+                            return {}
+            except Exception as e:
+                _LOGGER.error(f"Error getting %s: %s", command, str(e))
+                return {}
 
     async def getDeviceInfo(self):
         # Disable SSL warnings
@@ -382,33 +406,11 @@ class Coordinator(DataUpdateCoordinator):
                 return {}
 
     async def getNightMode(self):
-        # Disable SSL warnings
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        url = f'https://{self.address}/httpapi.asp?command=getPersonalListeningMode'
-        
-        headers = {
-        'Accept-Encoding': "gzip",
-        }
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with asyncio.timeout(10):
-                    async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
-                        if response.status == 200:
-                            response_text = await response.text()
-                            response_json = json.loads(response_text)
-                            try:
-                                _LOGGER.debug("Nightmode Response text: %s", response_text)
-                                return {"NightMode":response_json["status"]}
-                            except Exception as e:
-                                _LOGGER.debug("No Nightmode available")
-                                return {}
-                        else:
-                            _LOGGER.error("Nightmode Response status: %s", response.status)
-                            return {}
-            except Exception as e:
-                _LOGGER.error("Error getting NightMode: %s", str(e))
-                return {}
+        response = await self._getCommand("getPersonalListeningMode")
+        if "status" in response:
+            return { "NightMode": response["status"] }
+        else:
+            return {}
             
     async def setNightMode(self, value: bool):
         # Disable SSL warnings
@@ -437,65 +439,48 @@ class Coordinator(DataUpdateCoordinator):
                 return {}
 
     async def getRearSpeaker(self):
-        # Disable SSL warnings
-        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        url = f'https://{self.address}/httpapi.asp?command=getRearSpeakerStatus'
-        
-        headers = {
-        'Accept-Encoding': "gzip",
-        }
-        async with aiohttp.ClientSession() as session:
-            try:
-                async with asyncio.timeout(10):
-                    async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
-                        if response.status == 200:
-                            response_text = await response.text()
-                            _LOGGER.debug("Rear Speakers Response text: %s", response_text)
-                            try:
-                                response_json = json.loads(response_text)
-                                return {"Rears":response_json["rears"]}
-                            except Exception as e:
-                                _LOGGER.debug("No Rear Speakers available")
-                                if "Rears"in self.data:
-                                    self.data.pop('Rears', None)
-                                return {}
-                        else:
-                            return {}
-            except Exception as e:
-                _LOGGER.error("Error getting Rear Speakers: %s", str(e))
-                return {}   
+        response = await self._getCommand("getRearSpeakerStatus")
+        if "rears" in response:
+            return { "Rears": response["rears"] }
+        else:
+            return {}
     
     async def getSmartMode(self):
+        response = await self._getCommand("getSmartMode")
+        if "status" in response:
+            return { "SmartMode": response["status"] }
+        else:
+            return {}
+
+    async def getPureVoice(self):
+        response = await self._getCommand("getPureVoiceState")
+        if "purevoice_state" in response:
+            return { "PureVoice": "on" if response["purevoice_state"] == "1" else "off" }
+        else:
+            return {}
+            
+    async def setPureVoice(self, value: bool):
         # Disable SSL warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
-        
-        url = f'https://{self.address}/httpapi.asp?command=getSmartMode'
-        
+
+        """Fetch data from the API."""
+        url = f'https://{self.address}/httpapi.asp'
         headers = {
         'Accept-Encoding': "gzip",
         }
+        
+        strvalue = '1' if value else '0'
+        payload = 'command=setPureVoiceState&payload={"purevoice_state":"'+strvalue+'"}'
+
         async with aiohttp.ClientSession() as session:
             try:
                 async with asyncio.timeout(10):
-                    async with session.get(url, headers=headers, ssl=self.sslcontext) as response:
-                        if response.status == 200:
-                            response_text = await response.text()
-                            _LOGGER.debug("SmartMode Response text: %s", response_text)
-                            try:
-                                response_json = json.loads(response_text)
-                                return {"SmartMode": response_json["status"]}
-                            except Exception as e:
-                                _LOGGER.debug("No SmartMode available")
-                                return {}
+                    async with session.post(url, headers=headers, data=payload,  ssl=self.sslcontext) as response:
+                        if response.status != 200:
+                            _LOGGER.error("Failed to set PureVoice: %s", response.status)
+                            return {}
                         else:
-                            _LOGGER.error("SmartMode Response status: %s", response.status)
                             return {}
             except Exception as e:
-                _LOGGER.error("Error getting SmartMode: %s", str(e))
+                _LOGGER.error("Error setting PureVoice: %s", str(e))
                 return {}
-                
-    def merge_two_dicts(self,x, y):
-        z = x.copy()   # start with keys and values of x
-        z.update(y)    # modifies z with keys and values of y
-        return z
