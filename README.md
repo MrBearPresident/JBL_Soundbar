@@ -62,5 +62,5 @@ Features
 | JBL Bar 700 | | |
 | JBL Bar 800 | Works With V1.1.1d |Works With V1.2.0 |
 | JBL Bar 1000 |  Works With V1.1.1d |Works With V1.2.0 |
-| JBL Bar 1300 | | |
+| JBL Bar 1300 | |Works With V1.2.0|
 | JBL Bar 1300X | | |
