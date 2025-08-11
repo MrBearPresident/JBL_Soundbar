@@ -71,7 +71,7 @@ class Coordinator(DataUpdateCoordinator):
             "serial_number": serial_number,
         }
         try:
-            self._newFirmware = int(firmware_version.split('.')[2])>31
+            self._newFirmware = int(firmware_version.split('.')[0])>24 or int(firmware_version.split('.')[2])>31
             _LOGGER.debug("JBL one 3.0 Detected" if self._newFirmware else "Older firmware then JBL one 3.0")
         except Exception as e:
             self._newFirmware = False
