@@ -7,21 +7,15 @@ This integration is only usable if you're also able to use the 'JBL one' app (ht
 
 
 
-
-Usage
-=====
-
-
-It is recommended to use the latest stable version by using the command:
-
-
-
 Features
 ========
 - Read state of the soundbar
 - Setting Volume
 - Simulate button presses
 - Setting EQ
+
+![Features Soundbar](https://github.com/MrBearPresident/JBL_Soundbar/images/Features_Soundbar.png)
+![Features Rear Speaker](https://github.com/MrBearPresident/JBL_Soundbar/images/Features_Rear_Speaker.png)
 
 ## Installation Instructions
 
