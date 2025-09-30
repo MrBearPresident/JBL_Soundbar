@@ -8,6 +8,7 @@ import ssl
 import certifi
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
+from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_UUID, CONF_ADDRESS, CONF_SCAN_INTERVAL
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -15,10 +16,10 @@ _LOGGER = logging.getLogger(__name__)
 class Coordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
-    def __init__(self, address, pollingRate, hass=None, entry=None):
+    def __init__(self, address, scan_interval, hass=None, entry=None):
         """Initialize the coordinator."""
         self.address = address
-        self.pollingRate = pollingRate
+        self.pollingRate = scan_interval
         self.data = {}
 
         ssl_context = ssl.create_default_context(cafile=certifi.where())
@@ -34,8 +35,8 @@ class Coordinator(DataUpdateCoordinator):
                 _LOGGER,
                 name="JBL Sensor",
                 update_method=self._async_update_data,
-                update_interval=timedelta(seconds=pollingRate),
-            ) 
+                update_interval=timedelta(seconds=int(scan_interval)),
+            )
 
     async def _SetupDeviceInfo(self):
         #Setting up cert        
@@ -290,7 +291,7 @@ class Coordinator(DataUpdateCoordinator):
 
     async def setVolume(self, value: float):
         """Fetch data from the API."""
-        url = f'http://{self._entry.data["ip_address"]}:59152/upnp/control/rendercontrol1'
+        url = f'http://{self._entry.data[CONF_ADDRESS]}:59152/upnp/control/rendercontrol1'
         headers = {
             "Content-type": 'text/xml;charset="utf-8"',
             'Soapaction': "\"urn:schemas-upnp-org:service:RenderingControl:1#SetVolume\""
@@ -361,7 +362,7 @@ class Coordinator(DataUpdateCoordinator):
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
 
         """Fetch data from the API."""
-        url = f'https://{self._entry.data["ip_address"]}/httpapi.asp'
+        url = f'https://{self._entry.data[CONF_ADDRESS]}/httpapi.asp'
         headers = {
         'Accept-Encoding': "gzip",
         }

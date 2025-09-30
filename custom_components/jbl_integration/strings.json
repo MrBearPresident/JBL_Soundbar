@@ -1,0 +1,13 @@
+{
+  "config": {
+    "step": {
+      "zeroconf_confirm": {
+        "title": "Confirm JBL Device",
+        "description": "Please confirm adding the discovered JBL device at {name}."
+      }
+    },
+    "error": {
+      "could_not_extract_ip": "Could not extract IP address"
+    }
+  }
+}
