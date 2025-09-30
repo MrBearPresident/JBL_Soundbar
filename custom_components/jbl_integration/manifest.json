@@ -3,11 +3,12 @@
     "name": "JBL Integration", 
     "codeowners": ["@MrBearPresident"],
     "config_flow": true,
-    "dependencies": [],
+    "dependencies": ["zeroconf"],
     "documentation": "https://github.com/MrBearPresident/JBL_Soundbar",
     "iot_class": "local_polling",
     "issue_tracker": "https://github.com/MrBearPresident/JBL_Soundbar/issues",
     "requirements": [],
-    "version": "1.2.1"
+    "version": "1.5.1",
+    "zeroconf": ["_jbl-product._tcp.local."]
   }
   

@@ -15,13 +15,22 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     """Set up the JBL switch platform."""
     coordinator = hass.data[DOMAIN][entry.entry_id]["coordinator"]
 
-    async_add_entities([
-        JBLVolumeNumber(entry, coordinator),
-        JBLEqNumber(entry, coordinator,"EQ_1_Low"),
-        JBLEqNumber(entry, coordinator,"EQ_2_Mid"),
-        JBLEqNumber(entry, coordinator,"EQ_3_High"),
-        #add more switches
-    ])
+    entityArray = []
+    entityArray.append(JBLVolumeNumber(entry, coordinator))
+    if coordinator.newFirmware:
+        entityArray.append(JBLEqNumber(entry, coordinator," 125Hz"))
+        entityArray.append(JBLEqNumber(entry, coordinator," 250Hz"))
+        entityArray.append(JBLEqNumber(entry, coordinator," 500Hz"))
+        entityArray.append(JBLEqNumber(entry, coordinator,"1000Hz"))
+        entityArray.append(JBLEqNumber(entry, coordinator,"2000Hz"))
+        entityArray.append(JBLEqNumber(entry, coordinator,"4000Hz"))
+        entityArray.append(JBLEqNumber(entry, coordinator,"8000Hz"))
+    else:
+        entityArray.append(JBLEqNumber(entry, coordinator,"EQ_1_Low"))
+        entityArray.append(JBLEqNumber(entry, coordinator,"EQ_2_Mid"))
+        entityArray.append(JBLEqNumber(entry, coordinator,"EQ_3_High"))
+    
+    async_add_entities(entityArray)
 
 
 class JBLVolumeNumber(NumberEntity):
@@ -112,7 +121,7 @@ class JBLEqNumber(NumberEntity):
 
     @property
     def icon(self):
-        return " mdi:equalizer"
+        return "mdi:equalizer"
 
     @property
     def unique_id(self):
@@ -129,7 +138,7 @@ class JBLEqNumber(NumberEntity):
     @property
     def native_min_value(self):
         """Return the minimum value."""
-        minValue = -6 if "EQ_1_Low" != self.entityName else -9
+        minValue = -6 if ("EQ_1_Low" != self.entityName and " 125Hz" != self.entityName) else -9
         return minValue
 
     @property
@@ -140,12 +149,12 @@ class JBLEqNumber(NumberEntity):
     @property
     def native_step(self):
         """Return the step size."""
-        return 1
+        return 0.5 if self.coordinator.newFirmware else 1
 
     @property
     def native_value(self):
         """Return the current value."""
-        return self.coordinator.data.get(self.entityName)
+        return self.coordinator.data.get(self.entityName.strip())
 
     @property
     def native_unit_of_measurement(self):
@@ -158,7 +167,7 @@ class JBLEqNumber(NumberEntity):
         return False
 
     async def async_set_native_value(self, value: float):
-        await self.coordinator.setEQ(value,self.entityName)
+        await self.coordinator.setEQ(value,self.entityName.strip())
         await self.coordinator.async_request_refresh()
 
     async def async_added_to_hass(self):

@@ -22,7 +22,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
         JBLButton(coordinator,entry,"volumeUp","Increase Volume","mdi:volume-plus"),
         JBLButton(coordinator,entry,"volumeDown","Lower Volume","mdi:volume-minus"),
         JBLButton(coordinator,entry,"musicPlayPause","Play/Pause","mdi:play-pause"),
-        JBLButton(coordinator,entry,"smart_triger","Smart","mdi:heart-box"),
+        JBLButton(coordinator,entry,"smart_triger","Moment","mdi:heart-box"),
         JBLButton(coordinator,entry,"calibration","Calibration","mdi:calculator-variant"),
         JBLButton(coordinator,entry,"keyRear","Rear","mdi:numeric-2-box-multiple"),
         JBLButton(coordinator,entry,"bassboost","Bass","mdi:equalizer"),

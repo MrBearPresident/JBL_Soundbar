@@ -38,7 +38,10 @@ Features
 ## Setup Instructions
 
 [![Open your Home Assistant instance and start setting up a new integration.](https://my.home-assistant.io/badges/config_flow_start.svg)](https://my.home-assistant.io/redirect/config_flow_start/?domain=jbl_integration)
+### Automatic Setup
+The integration will scann network devices through zeroconf and propose them to you. 
 
+### Manual Setup
 1. Go to the Integrations page
 2. Search for "jbl_integration"
 3. Through the UI, configure the ip address of the soundbar 
@@ -56,5 +59,5 @@ Features
 | JBL Bar 700 | | |
 | JBL Bar 800 | Works With V1.1.1d |Works With V1.2.0 |
 | JBL Bar 1000 |  Works With V1.1.1d |Works With V1.2.0 |
-| JBL Bar 1300 | | |
+| JBL Bar 1300 | |Works With V1.2.0|
 | JBL Bar 1300X | | |
