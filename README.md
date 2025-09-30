@@ -14,8 +14,8 @@ Features
 - Simulate button presses
 - Setting EQ
 
-![Features Soundbar](https://github.com/MrBearPresident/JBL_Soundbar/images/Features_Soundbar.png)
-![Features Rear Speaker](https://github.com/MrBearPresident/JBL_Soundbar/images/Features_Rear_Speaker.png)
+![Features Soundbar](https://github.com/MrBearPresident/JBL_Soundbar/blob/main/images/Features_Soundbar.png?raw=true)
+![Features Rear Speaker](https://github.com/MrBearPresident/JBL_Soundbar/blob/811aba42b2f7b628f7fa931124891afe20f8f699/images/Features_Rear_Speaker.png?raw=true)
 
 ## Installation Instructions
 
