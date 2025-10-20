@@ -61,3 +61,4 @@ The integration will scann network devices through zeroconf and propose them to 
 | JBL Bar 1000 |  Works With V1.1.1d |Works With V1.2.0 |
 | JBL Bar 1300 | |Works With V1.2.0|
 | JBL Bar 1300X | | |
+| JBL Authentics 500 | | Works With V1.2.0 |
