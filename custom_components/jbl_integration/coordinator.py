@@ -9,6 +9,7 @@ import certifi
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_UUID, CONF_ADDRESS, CONF_SCAN_INTERVAL
+from homeassistant.exceptions import ConfigEntryNotReady
 from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
@@ -221,8 +222,7 @@ class Coordinator(DataUpdateCoordinator):
                             return {}
         except Exception as e:
             _LOGGER.error("Error fetching data: %s", str(e))
-            raise ConfigEntryNotReady(f"Timeout while connecting to {self.address}")
-            return {}
+            raise ConfigEntryNotReady(f"Timeout while connecting to {self.address}") from e
             
     async def requestInfo(self):
         # Disable SSL warnings
@@ -332,7 +332,17 @@ class Coordinator(DataUpdateCoordinator):
                             _LOGGER.debug("EQ Response text: %s", response_text)
                             #get data out of JSON
                             if self.newFirmware:
-                                gain = response_json["eq_list"][4]["eq_payload"]["gain"]
+                                active_id = str(response_json.get("active_eq_id", "0"))
+                                active_preset = None
+                                for item in response_json.get("eq_list", []):
+                                    if str(item.get("eq_id", "")) == active_id:
+                                        active_preset = item
+                                        break
+                                if active_preset is None and response_json.get("eq_list"):
+                                    active_preset = response_json["eq_list"][0]
+                                if active_preset is None:
+                                    return {}
+                                gain = active_preset["eq_payload"]["gain"]
                                 eqList = {
                                         "125Hz":gain[0],    #Min -9, Max 6, step 0.5
                                         "250Hz":gain[1],    #Min -6, Max 6, step 0.5
