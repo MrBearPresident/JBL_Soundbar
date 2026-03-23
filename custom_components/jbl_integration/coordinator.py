@@ -107,6 +107,7 @@ class Coordinator(DataUpdateCoordinator):
         combined_data = {
             **await self.requestInfo(),
             **await self.getEQ(),
+            **await self.getEQPresets(),
             **await self.getNightMode(),
             **await self.getRearSpeaker(),
             **await self.getSmartMode(),
@@ -480,3 +481,83 @@ class Coordinator(DataUpdateCoordinator):
             except Exception as e:
                 _LOGGER.error("Error setting PureVoice: %s", str(e))
                 return {}
+
+    async def getEQPresets(self):
+        """Fetch the list of EQ presets and the currently active one."""
+        if not self.newFirmware:
+            return {}
+
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+        url = f'https://{self.address}/httpapi.asp?command=getEQList'
+        headers = {'Accept-Encoding': "gzip"}
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with asyncio.timeout(10):
+                    async with session.get(url, headers=headers, ssl=self.sslcontext) as response:
+                        if response.status == 200:
+                            response_text = await response.text()
+                            response_json = json.loads(response_text)
+                            _LOGGER.debug("EQ Presets Response: %s", response_text)
+
+                            eq_list = response_json.get("eq_list", [])
+                            active_id = str(response_json.get("active_eq_id", "0"))
+
+                            preset_map = {}
+                            preset_data = {}
+                            active_name = None
+                            for item in eq_list:
+                                eq_id = str(item.get("eq_id", ""))
+                                eq_name = item.get("eq_name", f"Preset {eq_id}")
+                                preset_map[eq_id] = eq_name
+                                preset_data[eq_id] = item
+                                if eq_id == active_id:
+                                    active_name = eq_name
+
+                            if not active_name and preset_map:
+                                active_name = next(iter(preset_map.values()))
+
+                            return {
+                                "eq_preset_map": preset_map,
+                                "eq_preset_data": preset_data,
+                                "eq_active_preset": active_name,
+                                "eq_active_id": active_id,
+                            }
+                        else:
+                            _LOGGER.error("Failed to get EQ presets: %s", response.status)
+                            return {}
+            except Exception as e:
+                _LOGGER.warning("Error getting EQ presets: %s", str(e))
+                return {}
+
+    async def setActiveEQPreset(self, eq_id: str):
+        """Set the active EQ preset by its ID, sending full payload."""
+        urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
+
+        preset_data = self.data.get("eq_preset_data", {})
+        preset = preset_data.get(eq_id)
+        if not preset:
+            _LOGGER.error("EQ preset data not found for id: %s", eq_id)
+            return
+
+        send_payload = json.dumps({
+            "active_eq_id": eq_id,
+            "band": preset.get("band", 7),
+            "eq_payload": preset.get("eq_payload", {}),
+        })
+
+        url = f'https://{self.address}/httpapi.asp'
+        headers = {'Accept-Encoding': "gzip"}
+        payload = f'command=setActiveEQ&payload={send_payload}'
+        _LOGGER.debug("Setting EQ preset: %s", payload)
+
+        async with aiohttp.ClientSession() as session:
+            try:
+                async with asyncio.timeout(10):
+                    async with session.post(url, headers=headers, data=payload, ssl=self.sslcontext) as response:
+                        if response.status != 200:
+                            _LOGGER.error("Failed to set EQ preset: %s", response.status)
+                        else:
+                            _LOGGER.debug("EQ preset set successfully to id: %s", eq_id)
+            except Exception as e:
+                _LOGGER.error("Error setting EQ preset: %s", str(e))
