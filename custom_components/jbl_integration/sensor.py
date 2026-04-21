@@ -51,7 +51,7 @@ class JBLSensor(Entity):
         self._entry = entry
         self.entityName = name
         self.entityicon = icon
-        self.entity_id = f"button.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = f"sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
         self.infoString = infoString
 
     @property
@@ -76,7 +76,7 @@ class JBLSensor(Entity):
 
     @property
     def enabled(self):
-        return false
+        return False
 
     @property
     def unique_id(self):
