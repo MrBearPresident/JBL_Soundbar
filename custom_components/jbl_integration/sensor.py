@@ -34,7 +34,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry, async_add_e
     entityArray.append(JBLSensor(coordinator,entry,"track_duration","Track Duration","mdi:information"))
     entityArray.append(JBLSensor(coordinator,entry,"track","Track","mdi:information"))
     entityArray.append(JBLSensor(coordinator,entry,"channel","Channel","mdi:information"))
-    entityArray.append(JBLSensor(coordinator,entry,"source","Source","mdi:import"))
     entityArray.append(JBLSensor(coordinator,entry,"audio_format","Audio Format","mdi:surround-sound"))
     
     if "Rears" in coordinator.data:

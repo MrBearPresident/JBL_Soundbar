@@ -115,7 +115,6 @@ class Coordinator(DataUpdateCoordinator):
             **await self.getRearSpeaker(),
             **await self.getSmartMode(),
             **await self.getPureVoice(),
-            **await self.getStreamingStatus(),
         }
 
         # Ensure self.data is initialized to an empty dictionary if it is None
@@ -465,14 +464,6 @@ class Coordinator(DataUpdateCoordinator):
         else:
             return {}
 
-    async def getStreamingStatus(self):
-        response = await self._getCommand("getStreamingStatus")
-        status = response.get("status")
-        if isinstance(status, dict) and "source" in status:
-            return { "source": status["source"] }
-        else:
-            return {}
-
     async def async_start_rendering_control_events(self):
         """Subscribe to RenderingControl GENA events for HarmanBarState updates."""
         if self._rendering_control_sid:
@@ -655,7 +646,6 @@ class Coordinator(DataUpdateCoordinator):
 
         if parts:
             return " / ".join(parts)
-
         return None
             
     async def setPureVoice(self, value: bool):
