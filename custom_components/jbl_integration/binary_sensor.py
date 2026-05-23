@@ -5,6 +5,7 @@ from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from .const import DOMAIN
+from .entity import build_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -31,7 +32,12 @@ class JBLChargingSensor(BinarySensorEntity):
         self.number = arrayNumber
         self._entry = entry
         self.entityName = "Charging"
-        self.entity_id = f"binary_sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.coordinator.data["Rears"][self.number]["channel"].lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = build_entity_id(
+            "binary_sensor",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            self.coordinator.data["Rears"][self.number]["channel"],
+            self.entityName,
+        )
 
     @property
     def name(self):
@@ -82,7 +88,12 @@ class JBLDockedSensor(BinarySensorEntity):
         self.number = arrayNumber
         self._entry = entry
         self.entityName = "Docked"
-        self.entity_id = f"binary_sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.coordinator.data["Rears"][self.number]["channel"].lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = build_entity_id(
+            "binary_sensor",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            self.coordinator.data["Rears"][self.number]["channel"],
+            self.entityName,
+        )
 
     @property
     def name(self):
@@ -133,7 +144,12 @@ class JBLOnlineSensor(BinarySensorEntity):
         self.number = arrayNumber
         self._entry = entry
         self.entityName = "Online"
-        self.entity_id = f"binary_sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.coordinator.data["Rears"][self.number]["channel"].lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = build_entity_id(
+            "binary_sensor",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            self.coordinator.data["Rears"][self.number]["channel"],
+            self.entityName,
+        )
 
     @property
     def name(self):
