@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .coordinator import Coordinator
+from .entity import build_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -43,7 +44,11 @@ class JBLButton(ButtonEntity):
         self.entityName = name
         self.entityicon = icon
         self.actionstring = actionstring
-        self.entity_id = f"button.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = build_entity_id(
+            "button",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            self.entityName,
+        )
         
 
     @property
@@ -74,3 +79,5 @@ class JBLButton(ButtonEntity):
     async def async_press(self) -> None:
         """Handle the button press."""
         await self.coordinator._send_command(self.actionstring)
+
+        

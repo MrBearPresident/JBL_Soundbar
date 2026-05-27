@@ -8,6 +8,7 @@ from homeassistant.helpers.event import async_track_state_change
 
 from .const import DOMAIN
 from .coordinator import Coordinator
+from .entity import build_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -41,7 +42,11 @@ class JBLVolumeNumber(NumberEntity):
         self._entry = entry
         self._value  = 0
         self.coordinator = coordinator
-        self.entity_id = f"number.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_{self.name.lower()}"
+        self.entity_id = build_entity_id(
+            "number",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            self.name,
+        )
         
 
     @property
@@ -112,7 +117,11 @@ class JBLEqNumber(NumberEntity):
         self._value  = 0        
         self.entityName = eqLevel
         self.coordinator = coordinator
-        self.entity_id = f"number.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_{self.entityName.lower()}"
+        self.entity_id = build_entity_id(
+            "number",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            self.entityName,
+        )
 
     @property
     def name(self):

@@ -7,6 +7,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .coordinator import Coordinator
+from .entity import build_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -29,7 +30,11 @@ class JBLEQPresetSelect(SelectEntity):
         """Initialize the select."""
         self._entry = entry
         self.coordinator = coordinator
-        self.entity_id = f"select.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_eq_preset"
+        self.entity_id = build_entity_id(
+            "select",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            "eq_preset",
+        )
 
     @property
     def name(self):

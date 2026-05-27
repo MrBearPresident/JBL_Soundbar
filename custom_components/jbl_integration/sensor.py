@@ -17,6 +17,7 @@ from homeassistant.components.sensor import (
 
 from .const import DOMAIN
 from .coordinator import Coordinator
+from .entity import build_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -51,7 +52,11 @@ class JBLSensor(Entity):
         self._entry = entry
         self.entityName = name
         self.entityicon = icon
-        self.entity_id = f"sensor.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = build_entity_id(
+            "sensor",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            self.entityName,
+        )
         self.infoString = infoString
 
     @property
@@ -111,7 +116,12 @@ class JBLRearSensor(Entity):
         self.number = arrayNumber
         self._entry = entry
         self.entityName = "Battery"
-        self.entity_id = f"sensor.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_{self.coordinator.data["Rears"][self.number]["channel"].lower()}_{self.entityName.replace(' ', '_').lower()}"
+        self.entity_id = build_entity_id(
+            "sensor",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            self.coordinator.data["Rears"][self.number]["channel"],
+            self.entityName,
+        )
 
     @property
     def name(self):

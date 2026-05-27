@@ -8,6 +8,7 @@ from homeassistant.helpers.event import async_track_state_change
 
 from .const import DOMAIN
 from .coordinator import Coordinator
+from .entity import build_entity_id
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -34,7 +35,11 @@ class JBLPowerSwitch(SwitchEntity):
         self._entry = entry
         self._is_on = False
         self.coordinator = coordinator        
-        self.entity_id = f"switch.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_power"
+        self.entity_id = build_entity_id(
+            "switch",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            "power",
+        )
 
     @property
     def name(self):
@@ -107,7 +112,11 @@ class NightModeSwitch(SwitchEntity):
         self._entry = entry
         self._is_on = False
         self.coordinator = coordinator        
-        self.entity_id = f"switch.{self.coordinator.device_info.get("name", "jbl_integration").replace(' ', '_').lower()}_NightMode"
+        self.entity_id = build_entity_id(
+            "switch",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            "NightMode",
+        )
 
     @property
     def name(self):
@@ -163,7 +172,11 @@ class SmartModeSwitch(SwitchEntity):
         self._entry = entry
         self._is_on = False
         self.coordinator = coordinator        
-        self.entity_id = f"switch.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_smart_mode"
+        self.entity_id = build_entity_id(
+            "switch",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            "smart_mode",
+        )
 
     @property
     def name(self):
@@ -222,7 +235,11 @@ class PureVoiceModeSwitch(SwitchEntity):
         self._entry = entry
         self._is_on = False
         self.coordinator = coordinator        
-        self.entity_id = f"switch.{self.coordinator.device_info.get('name', 'jbl_integration').replace(' ', '_').lower()}_pure_voice"
+        self.entity_id = build_entity_id(
+            "switch",
+            self.coordinator.device_info.get("name", "jbl_integration"),
+            "pure_voice",
+        )
 
     @property
     def name(self):
