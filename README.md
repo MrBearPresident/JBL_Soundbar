@@ -1,4 +1,4 @@
-[![Stars](https://img.shields.io/github/stars/MrBearPresident/JBL_Soundbar?style=for-the-badge)](#) [![Last commit](https://img.shields.io/github/last-commit/MrBearPresident/JBL_Soundbar?style=for-the-badge)](#)  [![Integration](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.jbl_integration.total)](#)
+[![Stars](https://img.shields.io/github/stars/MrBearPresident/JBL_Soundbar?style=for-the-badge)](#) [![Last commit](https://img.shields.io/github/last-commit/MrBearPresident/JBL_Soundbar?style=for-the-badge)](#)  [![Integration](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.jbl_integration.total&style=for-the-badge)](#)
 
 JBL_Integration
 ===========================================
