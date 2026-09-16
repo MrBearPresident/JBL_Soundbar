@@ -61,7 +61,7 @@ class Coordinator(DataUpdateCoordinator):
         self._device_info = {
             "identifiers": {
                 (DOMAIN, self._entry.entry_id),
-                (DOMAIN, mac_address,uuid),
+                (DOMAIN, f"{mac_address}_{uuid}"),
                 (DOMAIN, str(uuid).replace("-", "")),
                 (DOMAIN, self.address),
                 },
