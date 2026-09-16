@@ -9,6 +9,7 @@ import certifi
 import html
 import socket
 from datetime import timedelta
+from functools import partial
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_UUID, CONF_ADDRESS, CONF_SCAN_INTERVAL
 from homeassistant.exceptions import ConfigEntryNotReady
@@ -27,11 +28,10 @@ class Coordinator(DataUpdateCoordinator):
         self._rendering_control_sid = None
         self._rendering_control_renew_task = None
 
-        ssl_context = ssl.create_default_context(cafile=certifi.where())
-        ssl_context.check_hostname = False
-        ssl_context.verify_mode = ssl.CERT_NONE
-        self.sslcontext = ssl_context
-    
+        # Don't create SSL context here - it will be created asynchronously
+        # to avoid blocking the event loop (see _create_ssl_context)
+        self.sslcontext = None
+        
         if hass != None and entry != None:
             self._entry = entry
             self.hass = hass
@@ -43,11 +43,38 @@ class Coordinator(DataUpdateCoordinator):
                 update_interval=timedelta(seconds=int(scan_interval)),
             )
 
+    async def _create_ssl_context(self):
+        """Create SSL context in executor to avoid blocking the event loop."""
+        loop = asyncio.get_event_loop()
+
+        # Run blocking SSL context creation in executor
+        ssl_context = await loop.run_in_executor(
+            None,
+            partial(ssl.create_default_context, cafile=certifi.where())
+        )
+
+        ssl_context.check_hostname = False
+        ssl_context.verify_mode = ssl.CERT_NONE
+
+        return ssl_context
+
     async def _SetupDeviceInfo(self):
-        #Setting up cert        
+        """Setting up cert and device info."""
+        # Create SSL context if not already created
+        if self.sslcontext is None:
+            self.sslcontext = await self._create_ssl_context()
+
+        # Load cert chain in executor to avoid blocking
         cert_path = self.hass.config.path("custom_components/jbl_integration/Cert.pem")
         key_path = self.hass.config.path("custom_components/jbl_integration/Key.pem")
-        self.sslcontext.load_cert_chain(certfile=cert_path, keyfile=key_path)
+
+        loop = asyncio.get_event_loop()
+        await loop.run_in_executor(
+            None,
+            self.sslcontext.load_cert_chain,
+            cert_path,
+            key_path
+        )
         
         device_info = await self.getDeviceInfo()
         device_Type = await self.getDeviceType() 
