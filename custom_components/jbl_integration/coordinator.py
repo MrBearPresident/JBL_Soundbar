@@ -19,7 +19,7 @@ _LOGGER = logging.getLogger(__name__)
 class Coordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
-    def __init__(self, address, scan_interval, hass=None, entry=None, sslcontext=None):
+    def __init__(self, address, scan_interval, hass=None, entry=None):
         """Initialize the coordinator."""
         self.address = address
         self.pollingRate = scan_interval
@@ -32,10 +32,9 @@ class Coordinator(DataUpdateCoordinator):
         ssl_context.verify_mode = ssl.CERT_NONE
         self.sslcontext = ssl_context
     
-        if hass != None and entry != None and sslcontext != None:
+        if hass != None and entry != None:
             self._entry = entry
             self.hass = hass
-            self.sslcontext = sslcontext
             super().__init__(
                 hass,
                 _LOGGER,
@@ -45,6 +44,11 @@ class Coordinator(DataUpdateCoordinator):
             )
 
     async def _SetupDeviceInfo(self):
+        #Setting up cert        
+        cert_path = self.hass.config.path("custom_components/jbl_integration/Cert.pem")
+        key_path = self.hass.config.path("custom_components/jbl_integration/Key.pem")
+        self.sslcontext.load_cert_chain(certfile=cert_path, keyfile=key_path)
+        
         device_info = await self.getDeviceInfo()
         device_Type = await self.getDeviceType() 
 
