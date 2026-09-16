@@ -6,6 +6,8 @@ import logging
 import urllib3
 import ssl
 import certifi
+import html
+import socket
 from datetime import timedelta
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_UUID, CONF_ADDRESS, CONF_SCAN_INTERVAL
@@ -22,6 +24,8 @@ class Coordinator(DataUpdateCoordinator):
         self.address = address
         self.pollingRate = scan_interval
         self.data = {}
+        self._rendering_control_sid = None
+        self._rendering_control_renew_task = None
 
         ssl_context = ssl.create_default_context(cafile=certifi.where())
         ssl_context.check_hostname = False
@@ -118,9 +122,14 @@ class Coordinator(DataUpdateCoordinator):
         # Ensure self.data is initialized to an empty dictionary if it is None
         if self.data is None:
             self.data = {}
+
+        if "audio_format" in self.data:
+            combined_data["audio_format"] = self.data["audio_format"]
+        if "tv_stream_info" in self.data:
+            combined_data["tv_stream_info"] = self.data["tv_stream_info"]
         
         self.data.update(combined_data)
-        return combined_data
+        return self.data
 
     async def _getCommand(self, command):
         # Disable SSL warnings
@@ -465,6 +474,190 @@ class Coordinator(DataUpdateCoordinator):
             return { "PureVoice": "on" if response["purevoice_state"] == "1" else "off" }
         else:
             return {}
+
+    async def async_start_rendering_control_events(self):
+        """Subscribe to RenderingControl GENA events for HarmanBarState updates."""
+        if self._rendering_control_sid:
+            return
+
+        callback_url = self._rendering_control_callback_url()
+        url = f"http://{self.address}:49152/upnp/event/rendercontrol1"
+        headers = {
+            "CALLBACK": f"<{callback_url}>",
+            "NT": "upnp:event",
+            "TIMEOUT": "Second-300",
+        }
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with asyncio.timeout(10):
+                    async with session.request("SUBSCRIBE", url, headers=headers) as response:
+                        if response.status not in (200, 202):
+                            response_text = await response.text()
+                            _LOGGER.warning(
+                                "Failed to subscribe RenderingControl events: %s %s",
+                                response.status,
+                                response_text,
+                            )
+                            return
+
+                        self._rendering_control_sid = response.headers.get("SID")
+                        if self._rendering_control_sid and self._rendering_control_renew_task is None:
+                            self._rendering_control_renew_task = self.hass.async_create_task(
+                                self._async_renew_rendering_control_events()
+                            )
+                        _LOGGER.debug(
+                            "Subscribed RenderingControl events for %s: %s via %s",
+                            self.address,
+                            self._rendering_control_sid,
+                            callback_url,
+                        )
+        except Exception as e:
+            _LOGGER.warning("Error subscribing RenderingControl events: %s", str(e))
+
+    async def async_stop_rendering_control_events(self):
+        """Unsubscribe from RenderingControl GENA events."""
+        if self._rendering_control_renew_task is not None:
+            self._rendering_control_renew_task.cancel()
+            self._rendering_control_renew_task = None
+
+        if not self._rendering_control_sid:
+            return
+
+        url = f"http://{self.address}:49152/upnp/event/rendercontrol1"
+        headers = {"SID": self._rendering_control_sid}
+        self._rendering_control_sid = None
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with asyncio.timeout(5):
+                    await session.request("UNSUBSCRIBE", url, headers=headers)
+        except Exception as e:
+            _LOGGER.debug("Error unsubscribing RenderingControl events: %s", str(e))
+
+    async def _async_renew_rendering_control_events(self):
+        """Renew RenderingControl GENA subscription before it expires."""
+        url = f"http://{self.address}:49152/upnp/event/rendercontrol1"
+
+        while self._rendering_control_sid:
+            await asyncio.sleep(240)
+            if not self._rendering_control_sid:
+                return
+
+            headers = {
+                "SID": self._rendering_control_sid,
+                "TIMEOUT": "Second-300",
+            }
+            try:
+                async with aiohttp.ClientSession() as session:
+                    async with asyncio.timeout(10):
+                        async with session.request("SUBSCRIBE", url, headers=headers) as response:
+                            if response.status not in (200, 202):
+                                _LOGGER.warning(
+                                    "Failed to renew RenderingControl events: %s",
+                                    response.status,
+                                )
+            except asyncio.CancelledError:
+                raise
+            except Exception as e:
+                _LOGGER.debug("Error renewing RenderingControl events: %s", str(e))
+
+    async def async_handle_rendering_control_notify(self, body):
+        """Handle RenderingControl NOTIFY body and update audio format."""
+        try:
+            stream_info = self._extract_tv_stream_info(body)
+        except Exception as e:
+            _LOGGER.debug("Error parsing RenderingControl event: %s", str(e))
+            return False
+
+        if stream_info is None:
+            return False
+
+        audio_format = self._format_tv_stream_info(stream_info)
+        if audio_format is None:
+            return False
+
+        self.data["audio_format"] = audio_format
+        self.data["tv_stream_info"] = stream_info
+        self.async_set_updated_data(self.data)
+        return True
+
+    def _rendering_control_callback_url(self):
+        callback_host = self._callback_host()
+        callback_port = getattr(self.hass.http, "server_port", None) or 8123
+        return f"http://{callback_host}:{callback_port}/api/{DOMAIN}/{self._entry.entry_id}/rendering_control"
+
+    def _callback_host(self):
+        try:
+            with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as sock:
+                sock.connect((self.address, 59152))
+                return sock.getsockname()[0]
+        except OSError:
+            return self.address
+
+    def _extract_tv_stream_info(self, response_text):
+        candidates = [response_text]
+
+        try:
+            from xml.etree import ElementTree as ET
+
+            root = ET.fromstring(response_text)
+            for element in root.iter():
+                if element.text and "HarmanBarState" in element.text:
+                    candidates.append(element.text)
+                    unescaped_text = html.unescape(element.text)
+                    if unescaped_text != element.text:
+                        candidates.append(unescaped_text)
+        except Exception as e:
+            _LOGGER.debug("Could not parse audio format response wrapper: %s", str(e))
+
+        for candidate in candidates:
+            try:
+                root = ET.fromstring(candidate)
+            except Exception as e:
+                _LOGGER.debug("Could not parse TV stream info XML: %s", str(e))
+                continue
+
+            for element in root.iter():
+                if element.tag.split("}")[-1] != "HarmanBarState":
+                    continue
+
+                harman_state = element.attrib.get("val")
+                if not harman_state:
+                    continue
+
+                state = json.loads(html.unescape(harman_state))
+                stream_info = state.get("tv_stream_info")
+                if isinstance(stream_info, dict):
+                    return stream_info
+
+        return None
+
+    def _format_tv_stream_info(self, stream_info):
+        codec_type = stream_info.get("codec_type")
+        proc_type = stream_info.get("proc_type")
+        channels = stream_info.get("channels")
+        sample_rate = stream_info.get("sample_rate")
+
+        parts = []
+        if proc_type:
+            parts.append(str(proc_type))
+
+        if codec_type and codec_type != proc_type:
+            parts.append(str(codec_type))
+
+        if channels:
+            parts.append(f"{channels}ch")
+
+        if sample_rate:
+            try:
+                parts.append(f"{int(sample_rate) / 1000:g} kHz")
+            except (TypeError, ValueError):
+                parts.append(f"{sample_rate} Hz")
+
+        if parts:
+            return " / ".join(parts)
+        return None
             
     async def setPureVoice(self, value: bool):
         # Disable SSL warnings

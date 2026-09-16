@@ -3,7 +3,7 @@
     "name": "JBL Integration", 
     "codeowners": ["@MrBearPresident"],
     "config_flow": true,
-    "dependencies": ["zeroconf"],
+    "dependencies": ["zeroconf", "http"],
     "documentation": "https://github.com/MrBearPresident/JBL_Soundbar",
     "iot_class": "local_polling",
     "issue_tracker": "https://github.com/MrBearPresident/JBL_Soundbar/issues",
