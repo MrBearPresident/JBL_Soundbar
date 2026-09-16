@@ -9,6 +9,7 @@ from homeassistant.core import HomeAssistant
 
 from .const import DOMAIN
 from .coordinator import Coordinator
+from .ssl_context import async_create_ssl_context
 from homeassistant.helpers import config_validation as cv
 from homeassistant.const import CONF_HOST, CONF_NAME, CONF_PORT, CONF_UUID, CONF_ADDRESS, CONF_SCAN_INTERVAL
 
@@ -50,8 +51,9 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
     """Set up JBL integration from a config entry."""
 
     _LOGGER.debug("Setting up JBL Integration. Entry data: %s", str(entry.data))
+    sslcontext = await async_create_ssl_context(hass)
     # Pass the IP address and polling rate to the Coordinator
-    coordinator = Coordinator(entry.data.get(CONF_ADDRESS), entry.data.get(CONF_SCAN_INTERVAL),hass, entry)
+    coordinator = Coordinator(entry.data.get(CONF_ADDRESS), entry.data.get(CONF_SCAN_INTERVAL),hass, entry, sslcontext)
     await coordinator._SetupDeviceInfo()
     await coordinator.async_config_entry_first_refresh()
 
