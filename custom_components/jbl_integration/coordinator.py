@@ -154,7 +154,9 @@ class Coordinator(DataUpdateCoordinator):
             combined_data["audio_format"] = self.data["audio_format"]
         if "tv_stream_info" in self.data:
             combined_data["tv_stream_info"] = self.data["tv_stream_info"]
-        
+        if "hdmi_input" in self.data:
+            combined_data["hdmi_input"] = self.data["hdmi_input"]
+
         self.data.update(combined_data)
         return self.data
 
@@ -590,24 +592,35 @@ class Coordinator(DataUpdateCoordinator):
                 _LOGGER.debug("Error renewing RenderingControl events: %s", str(e))
 
     async def async_handle_rendering_control_notify(self, body):
-        """Handle RenderingControl NOTIFY body and update audio format."""
+        """Handle RenderingControl NOTIFY body and update audio format / HDMI input."""
         try:
-            stream_info = self._extract_tv_stream_info(body)
+            state = self._extract_harman_state(body)
         except Exception as e:
             _LOGGER.debug("Error parsing RenderingControl event: %s", str(e))
             return False
 
-        if stream_info is None:
+        if not isinstance(state, dict):
             return False
 
-        audio_format = self._format_tv_stream_info(stream_info)
-        if audio_format is None:
-            return False
+        updated = False
 
-        self.data["audio_format"] = audio_format
-        self.data["tv_stream_info"] = stream_info
-        self.async_set_updated_data(self.data)
-        return True
+        stream_info = state.get("tv_stream_info")
+        if isinstance(stream_info, dict):
+            audio_format = self._format_tv_stream_info(stream_info)
+            if audio_format is not None:
+                self.data["audio_format"] = audio_format
+                self.data["tv_stream_info"] = stream_info
+                updated = True
+
+        hdmi_input = self._format_hdmi_input(self._extract_hdmi_source(state))
+        if hdmi_input is not None:
+            self.data["hdmi_input"] = hdmi_input
+            updated = True
+
+        if updated:
+            self.async_set_updated_data(self.data)
+
+        return updated
 
     def _rendering_control_callback_url(self):
         callback_host = self._callback_host()
@@ -622,7 +635,8 @@ class Coordinator(DataUpdateCoordinator):
         except OSError:
             return self.address
 
-    def _extract_tv_stream_info(self, response_text):
+    def _extract_harman_state(self, response_text):
+        """Parse a RenderingControl NOTIFY body and return the decoded HarmanBarState JSON."""
         candidates = [response_text]
 
         try:
@@ -653,12 +667,33 @@ class Coordinator(DataUpdateCoordinator):
                 if not harman_state:
                     continue
 
-                state = json.loads(html.unescape(harman_state))
-                stream_info = state.get("tv_stream_info")
-                if isinstance(stream_info, dict):
-                    return stream_info
+                return json.loads(html.unescape(harman_state))
 
         return None
+
+    def _extract_hdmi_source(self, state):
+        """Return the raw HDMI source id (e.g. 'com.harman.HDMI2') from a HarmanBarState payload.
+
+        The soundbar reports the active source under different keys depending on whether
+        the event is the initial switch notification ("musicSource") or the follow-up
+        audio-format update ("tv_stream_info"), so both are checked.
+        """
+        for key in ("tv_stream_info", "musicSource"):
+            section = state.get(key)
+            if isinstance(section, dict):
+                source = section.get("source")
+                if source:
+                    return source
+        return None
+
+    def _format_hdmi_input(self, source):
+        """Map a 'com.harman.HDMI'/'com.harman.HDMI2' source id to an input number (1, 2, ...)."""
+        prefix = "com.harman.HDMI"
+        if not source or not source.startswith(prefix):
+            return None
+
+        suffix = source[len(prefix):]
+        return int(suffix) if suffix.isdigit() else 1
 
     def _format_tv_stream_info(self, stream_info):
         codec_type = stream_info.get("codec_type")
