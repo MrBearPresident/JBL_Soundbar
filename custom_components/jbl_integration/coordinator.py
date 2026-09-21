@@ -530,8 +530,14 @@ class Coordinator(DataUpdateCoordinator):
 
                         self._rendering_control_sid = response.headers.get("SID")
                         if self._rendering_control_sid and self._rendering_control_renew_task is None:
-                            self._rendering_control_renew_task = self.hass.async_create_task(
-                                self._async_renew_rendering_control_events()
+                            # Run the renewal loop as a background task: it lives for
+                            # the lifetime of the GENA subscription. A plain
+                            # async_create_task() is tracked as a pending setup task
+                            # and blocks Home Assistant's startup wrap-up
+                            # ("Setup timed out for bootstrap ... moving forward").
+                            self._rendering_control_renew_task = self.hass.async_create_background_task(
+                                self._async_renew_rendering_control_events(),
+                                f"jbl_integration rendercontrol renew for {self.address}",
                             )
                         _LOGGER.debug(
                             "Subscribed RenderingControl events for %s: %s via %s",
