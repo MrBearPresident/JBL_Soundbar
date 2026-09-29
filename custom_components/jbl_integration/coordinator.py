@@ -17,6 +17,9 @@ from .const import DOMAIN
 
 _LOGGER = logging.getLogger(__name__)
 
+# Seconds to wait for the device during setup before giving up and retrying later.
+SETUP_TIMEOUT = 5
+
 class Coordinator(DataUpdateCoordinator):
     """Class to manage fetching data from the API."""
 
@@ -76,8 +79,12 @@ class Coordinator(DataUpdateCoordinator):
             key_path
         )
         
-        device_info = await self.getDeviceInfo()
-        device_Type = await self.getDeviceType() 
+        device_info = await self.getDeviceInfo(timeout=SETUP_TIMEOUT)
+        if not device_info:
+            # Powered off or unreachable: let Home Assistant retry in the
+            # background instead of waiting for the second request as well.
+            raise ConfigEntryNotReady(f"No answer from {self.address}")
+        device_Type = await self.getDeviceType()
 
         # Ensure device_info has all the expected keys and provide fallback values if necessary
         mac_address = device_info.get("wlan0_mac", "unknown_mac")
@@ -183,7 +190,7 @@ class Coordinator(DataUpdateCoordinator):
                 _LOGGER.error(f"Error getting %s: %s", command, str(e))
                 return {}
 
-    async def getDeviceInfo(self):
+    async def getDeviceInfo(self, timeout=10):
         # Disable SSL warnings
         urllib3.disable_warnings(urllib3.exceptions.InsecureRequestWarning)
         
@@ -194,7 +201,7 @@ class Coordinator(DataUpdateCoordinator):
         
         async with aiohttp.ClientSession() as session:
             try:
-                async with asyncio.timeout(10):
+                async with asyncio.timeout(timeout):
                     async with session.get(url, headers=headers,  ssl=self.sslcontext) as response:
                         if response.status == 200:
                             response_text = await response.text()
@@ -229,7 +236,7 @@ class Coordinator(DataUpdateCoordinator):
 
         try:        
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, data=payload, headers=headers) as response:
+                async with session.post(url, data=payload, headers=headers, timeout=aiohttp.ClientTimeout(total=SETUP_TIMEOUT)) as response:
                     if response.status == 200:
                         response_text = await response.text()
                         
