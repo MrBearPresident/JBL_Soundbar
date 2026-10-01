@@ -565,31 +565,44 @@ class Coordinator(DataUpdateCoordinator):
             _LOGGER.debug("Error unsubscribing RenderingControl events: %s", str(e))
 
     async def _async_renew_rendering_control_events(self):
-        """Renew RenderingControl GENA subscription before it expires."""
+        """Keep the RenderingControl GENA subscription alive.
+
+        The device can drop our subscription outright (reboot, standby, firmware
+        update, ...), in which case renewing with the old SID keeps failing with
+        HTTP 412 forever. When that happens, re-subscribe from scratch instead of
+        just logging and retrying the same dead SID.
+        """
         url = f"http://{self.address}:49152/upnp/event/rendercontrol1"
 
-        while self._rendering_control_sid:
+        while True:
             await asyncio.sleep(240)
-            if not self._rendering_control_sid:
-                return
 
-            headers = {
-                "SID": self._rendering_control_sid,
-                "TIMEOUT": "Second-300",
-            }
-            try:
-                async with aiohttp.ClientSession() as session:
-                    async with asyncio.timeout(10):
-                        async with session.request("SUBSCRIBE", url, headers=headers) as response:
-                            if response.status not in (200, 202):
-                                _LOGGER.warning(
-                                    "Failed to renew RenderingControl events: %s",
-                                    response.status,
-                                )
-            except asyncio.CancelledError:
-                raise
-            except Exception as e:
-                _LOGGER.debug("Error renewing RenderingControl events: %s", str(e))
+            if self._rendering_control_sid:
+                headers = {
+                    "SID": self._rendering_control_sid,
+                    "TIMEOUT": "Second-300",
+                }
+                renewed = False
+                try:
+                    async with aiohttp.ClientSession() as session:
+                        async with asyncio.timeout(10):
+                            async with session.request("SUBSCRIBE", url, headers=headers) as response:
+                                renewed = response.status in (200, 202)
+                                if not renewed:
+                                    _LOGGER.warning(
+                                        "Failed to renew RenderingControl events: %s",
+                                        response.status,
+                                    )
+                except asyncio.CancelledError:
+                    raise
+                except Exception as e:
+                    _LOGGER.debug("Error renewing RenderingControl events: %s", str(e))
+
+                if not renewed:
+                    self._rendering_control_sid = None
+
+            if not self._rendering_control_sid:
+                await self.async_start_rendering_control_events()
 
     async def async_handle_rendering_control_notify(self, body):
         """Handle RenderingControl NOTIFY body and update audio format / HDMI input."""
