@@ -1,5 +1,4 @@
 """Button platform for JBL integration."""
-import async_timeout
 import logging
 from homeassistant.components.button import ButtonEntity
 from homeassistant.config_entries import ConfigEntry

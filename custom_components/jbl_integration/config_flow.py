@@ -21,7 +21,6 @@ _LOGGER = logging.getLogger(__name__)
 class JBLConfigFlow(config_entries.ConfigFlow, domain=DOMAIN):
     """Config flow for JBL Integration."""
     VERSION = 2
-    CONNECTION_CLASS = config_entries.CONN_CLASS_LOCAL_POLL
 
     def __init__(self) -> None:
         """Initialize the config flow."""
@@ -245,9 +244,7 @@ class OptionsFlowHandler(OptionsFlowWithReload):
             newData.update(user_input)
             _LOGGER.debug("JBL entry updated: "+str(newData))
             self.hass.config_entries.async_update_entry(self.config_entry, data=newData)
-            result = self.async_create_entry(data=newData)
-            await self.hass.config_entries.async_reload(self.config_entry.entry_id)
-            return result
+            return self.async_create_entry(data=newData)
         
         schema = {
             vol.Optional(CONF_ADDRESS, default=self.config_entry.data.get(CONF_ADDRESS, 5),): str,

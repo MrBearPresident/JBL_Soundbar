@@ -1,6 +1,5 @@
 """Sensor platform for JBL integration."""
 import aiohttp
-import async_timeout
 import logging
 from datetime import timedelta
 from homeassistant.helpers.entity import Entity
