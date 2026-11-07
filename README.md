@@ -1,5 +1,11 @@
 [![Stars](https://img.shields.io/github/stars/MrBearPresident/JBL_Soundbar?style=for-the-badge)](#) [![Last commit](https://img.shields.io/github/last-commit/MrBearPresident/JBL_Soundbar?style=for-the-badge)](#)  [![Integration](https://img.shields.io/badge/dynamic/json?color=41BDF5&logo=home-assistant&label=integration%20usage&suffix=%20installs&cacheSeconds=15600&url=https://analytics.home-assistant.io/custom_integrations.json&query=$.jbl_integration.total&style=for-the-badge)](#)
 
+> [!WARNING]
+> This repository is retired and no further development is being done here.
+> Active development has moved to: https://github.com/SH1FT-W/jbl-bar#coming-from-jbl_integration
+>
+> Please follow that project for updates, fixes, and ongoing support.
+
 JBL_Integration
 ===========================================
 
